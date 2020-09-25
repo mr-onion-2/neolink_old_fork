@@ -5,6 +5,7 @@ use log::*;
 use neolink::bc_protocol::BcCamera;
 use neolink::gst::{MaybeAppSrc, RtspServer, StreamFormat};
 use neolink::Never;
+use neolink::mqtt::MQTT;
 use std::collections::HashSet;
 use std::fs;
 use std::io::Write;
@@ -15,6 +16,7 @@ use validator::Validate;
 
 mod cmdline;
 mod config;
+mod mqtt;
 
 use cmdline::Opt;
 use config::{CameraConfig, Config, UserConfig};

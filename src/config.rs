@@ -1,3 +1,4 @@
+use librumqttd::Config as MqttConfig;
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::Deserialize;
@@ -39,6 +40,9 @@ pub struct Config {
     #[validate]
     #[serde(default)]
     pub users: Vec<UserConfig>,
+
+    #[serde(default = "default_mqtt")]
+    pub mqtt: Option<MqttConfig>,
 }
 
 #[derive(Debug, Deserialize, Validate, Clone)]
@@ -113,6 +117,10 @@ fn default_tls_client_auth() -> String {
 
 fn default_channel_id() -> u32 {
     0
+}
+
+fn default_mqtt() -> Option<MqttConfig> {
+    None
 }
 
 pub static RESERVED_NAMES: &[&str] = &["anyone", "anonymous"];
