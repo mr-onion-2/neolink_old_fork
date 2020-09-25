@@ -1,7 +1,7 @@
-use librumqttd::{Broker, LinkTx, Config};
-use tokio::task;
 use crossbeam_utils::thread::Scope;
+use librumqttd::{Broker, Config, LinkTx};
 use std::sync::Mutex;
+use tokio::task;
 
 use log::*;
 
@@ -29,9 +29,7 @@ impl MQTT {
             link = None;
         }
 
-        Self{
-            link,
-        }
+        Self { link }
     }
 
     #[allow(dead_code)]
@@ -48,7 +46,10 @@ impl MQTT {
         link.connect().await.unwrap();
         let res = link.publish(topic, true, message).await;
         if res.is_err() {
-            error!("Failed to publish on mqtt, topic: {}, message: {}", topic, message);
+            error!(
+                "Failed to publish on mqtt, topic: {}, message: {}",
+                topic, message
+            );
         }
     }
 

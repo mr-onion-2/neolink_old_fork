@@ -286,10 +286,7 @@ impl BcCamera {
 
         let sub_motion = connection.subscribe(MSG_ID_MOTION)?;
 
-        mqtt.send_message(
-            &format!("/neolink/{}", camera_name),
-            "connect"
-        );
+        mqtt.send_message(&format!("/neolink/{}", camera_name), "connect");
 
         loop {
             let binary_data = media_sub.next_media_packet(RX_TIMEOUT)?;
@@ -303,19 +300,16 @@ impl BcCamera {
             };
 
             let msg_motion = sub_motion.rx.recv_timeout(RX_TIMEOUT)?;
-            if let BcBody::ModernMsg(ModernMsg {
-                xml: Some(xml),
-                ..
-            }) = msg_motion.body
-            {
-                if let BcXml{
+            if let BcBody::ModernMsg(ModernMsg { xml: Some(xml), .. }) = msg_motion.body {
+                if let BcXml {
                     alarm_event_list: Some(alarm_event_list),
                     ..
-                } = xml {
+                } = xml
+                {
                     for alarm_event in &alarm_event_list.alarm_events {
                         mqtt.send_message(
                             &format!("/neolink/{}/state/motion", camera_name),
-                            &alarm_event.status
+                            &alarm_event.status,
                         );
                     }
                 } else {

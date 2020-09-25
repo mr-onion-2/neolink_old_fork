@@ -1,5 +1,5 @@
-use librumqttd::Config as MqttConfig;
 use lazy_static::lazy_static;
+use librumqttd::Config as MqttConfig;
 use regex::Regex;
 use serde::Deserialize;
 use std::clone::Clone;

@@ -4,8 +4,8 @@ use gio::TlsAuthenticationMode;
 use log::*;
 use neolink::bc_protocol::BcCamera;
 use neolink::gst::{MaybeAppSrc, RtspServer, StreamFormat};
-use neolink::Never;
 use neolink::mqtt::MQTT;
+use neolink::Never;
 use std::collections::HashSet;
 use std::fs;
 use std::io::Write;
@@ -61,10 +61,7 @@ fn main() -> Result<(), Error> {
 
     crossbeam::scope(|s| {
         let mqtt = MQTT::new(s, &config.mqtt);
-        mqtt.send_message(
-            "/neolink",
-            "start"
-        );
+        mqtt.send_message("/neolink", "start");
         // Share the mqtt
         let arc_mqtt = Arc::new(mqtt);
         for camera in config.cameras {
@@ -98,7 +95,9 @@ fn main() -> Result<(), Error> {
                     .unwrap();
                 let main_camera = arc_cam.clone();
                 let main_mqtt = arc_mqtt.clone();
-                s.spawn(move |_| camera_loop(&*main_camera, "mainStream", &mut output, &*main_mqtt, true));
+                s.spawn(move |_| {
+                    camera_loop(&*main_camera, "mainStream", &mut output, &*main_mqtt, true)
+                });
             }
             if ["both", "subStream"].iter().any(|&e| e == arc_cam.stream) {
                 let paths = &[&*format!("/{}/subStream", arc_cam.name)];
@@ -108,7 +107,9 @@ fn main() -> Result<(), Error> {
                 let sub_camera = arc_cam.clone();
                 let manage = arc_cam.stream == "subStream";
                 let sub_mqtt = arc_mqtt.clone();
-                s.spawn(move |_| camera_loop(&*sub_camera, "subStream", &mut output, &*sub_mqtt, manage));
+                s.spawn(move |_| {
+                    camera_loop(&*sub_camera, "subStream", &mut output, &*sub_mqtt, manage)
+                });
             }
         }
 
