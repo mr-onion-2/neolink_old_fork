@@ -60,6 +60,13 @@ fn main() -> Result<(), Error> {
     }
 
     crossbeam::scope(|s| {
+        let mqtt = MQTT::new(s, &config.mqtt);
+        mqtt.send_message(
+            "/neolink",
+            "start"
+        );
+        // Share the mqtt
+        let arc_mqtt = Arc::new(mqtt);
         for camera in config.cameras {
             let stream_format = match &*camera.format {
                 "h264" | "H264" => StreamFormat::H264,
@@ -90,7 +97,8 @@ fn main() -> Result<(), Error> {
                     .add_stream(paths, stream_format, &permitted_users)
                     .unwrap();
                 let main_camera = arc_cam.clone();
-                s.spawn(move |_| camera_loop(&*main_camera, "mainStream", &mut output, true));
+                let main_mqtt = arc_mqtt.clone();
+                s.spawn(move |_| camera_loop(&*main_camera, "mainStream", &mut output, &*main_mqtt, true));
             }
             if ["both", "subStream"].iter().any(|&e| e == arc_cam.stream) {
                 let paths = &[&*format!("/{}/subStream", arc_cam.name)];
@@ -99,7 +107,8 @@ fn main() -> Result<(), Error> {
                     .unwrap();
                 let sub_camera = arc_cam.clone();
                 let manage = arc_cam.stream == "subStream";
-                s.spawn(move |_| camera_loop(&*sub_camera, "subStream", &mut output, manage));
+                let sub_mqtt = arc_mqtt.clone();
+                s.spawn(move |_| camera_loop(&*sub_camera, "subStream", &mut output, &*sub_mqtt, manage));
             }
         }
 
@@ -114,6 +123,7 @@ fn camera_loop(
     camera_config: &CameraConfig,
     stream_name: &str,
     output: &mut MaybeAppSrc,
+    mqtt: &MQTT,
     manage: bool,
 ) -> Result<Never, Error> {
     let min_backoff = Duration::from_secs(1);
@@ -121,7 +131,7 @@ fn camera_loop(
     let mut current_backoff = min_backoff;
 
     loop {
-        let cam_err = camera_main(camera_config, stream_name, output, manage).unwrap_err();
+        let cam_err = camera_main(camera_config, stream_name, output, mqtt, manage).unwrap_err();
         output.on_stream_error();
         // Authentication failures are permanent; we retry everything else
         if cam_err.connected {
@@ -202,6 +212,7 @@ fn camera_main(
     camera_config: &CameraConfig,
     stream_name: &str,
     output: &mut dyn Write,
+    mqtt: &MQTT,
     manage: bool,
 ) -> Result<Never, CameraErr> {
     let mut connected = false;
@@ -253,7 +264,7 @@ fn camera_main(
             "{}: Starting video stream {}",
             camera_config.name, stream_name
         );
-        camera.start_video(output, stream_name, camera_config.channel_id)
+        camera.start_video(output, &camera_config.name, stream_name, camera_config.channel_id, mqtt)
     })()
     .map_err(|err| CameraErr { connected, err })
 }
