@@ -10,7 +10,7 @@ edition = "2018"
 [dependencies]
 cookie-factory = "0.3"
 crossbeam = "0.7"
-crossbeam_utils = "0.7"
+crossbeam-utils = "0.7"
 env_logger = "*"
 err-derive = "0.2"
 glib = "*"
