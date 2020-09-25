@@ -41,6 +41,8 @@ pub struct BcXml {
     pub system_general: Option<SystemGeneral>,
     #[yaserde(rename = "Norm")]
     pub norm: Option<Norm>,
+    #[yaserde(rename = "AlarmEventList")]
+    pub alarm_event_list: Option<AlarmEventList>,
 }
 
 impl AllTopXmls {
@@ -158,6 +160,26 @@ pub struct Norm {
     #[yaserde(attribute)]
     pub version: String,
     norm: String,
+}
+
+#[derive(PartialEq, Eq, Default, Debug, YaDeserialize, YaSerialize)]
+pub struct AlarmEventList {
+    #[yaserde(attribute)]
+    pub version: String,
+    #[yaserde(rename = "AlarmEvent")]
+    pub alarm_events: Vec<AlarmEvent>,
+}
+
+#[derive(PartialEq, Eq, Default, Debug, YaDeserialize, YaSerialize)]
+pub struct AlarmEvent {
+    #[yaserde(attribute)]
+    pub version: String,
+    #[yaserde(rename = "channelId")]
+    pub channel_id: i32,
+    pub status: String,
+    pub recording: i32,
+    #[yaserde(rename = "timeStamp")]
+    pub timeStamp: i32,
 }
 
 pub fn xml_ver() -> String {
