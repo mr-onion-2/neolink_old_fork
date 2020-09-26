@@ -175,7 +175,7 @@ pub struct AlarmEvent {
     #[yaserde(attribute)]
     pub version: String,
     #[yaserde(rename = "channelId")]
-    pub channel_id: i32,
+    pub channel_id: u32,
     pub status: String,
     pub recording: i32,
     #[yaserde(rename = "timeStamp")]
