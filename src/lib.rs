@@ -3,7 +3,6 @@
 pub mod bc;
 pub mod bc_protocol;
 pub mod gst;
-pub mod mqtt;
 
 #[derive(Debug)]
 pub enum Never {}

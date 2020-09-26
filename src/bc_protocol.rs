@@ -1,19 +1,22 @@
 use self::connection::BcConnection;
 use self::media_packet::{MediaDataKind, MediaDataSubscriber};
+pub use self::motion::{MotionDataSubscriber, MotionStatus};
 use crate::bc;
 use crate::bc::{model::*, xml::*};
-use crate::mqtt::MQTT;
 use err_derive::Error;
 use log::*;
 use std::io::Write;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::time::Duration;
+use crossbeam_channel::Sender;
+
 
 use Md5Trunc::*;
 
 mod connection;
 mod media_packet;
 mod time;
+mod motion;
 
 pub struct BcCamera {
     address: SocketAddr,
@@ -247,10 +250,8 @@ impl BcCamera {
     pub fn start_video(
         &self,
         data_out: &mut dyn Write,
-        camera_name: &str,
         stream_name: &str,
         channel_id: u32,
-        mqtt: &MQTT,
     ) -> Result<Never> {
         let connection = self
             .connection
@@ -282,12 +283,6 @@ impl BcCamera {
 
         let mut media_sub = MediaDataSubscriber::from_bc_sub(&sub_video);
 
-        // Motion
-
-        let sub_motion = connection.subscribe(MSG_ID_MOTION)?;
-
-        mqtt.send_message(&format!("/neolink/{}", camera_name), "connect");
-
         loop {
             let binary_data = media_sub.next_media_packet(RX_TIMEOUT)?;
             // We now have a complete interesting packet. Send it to gst.
@@ -298,26 +293,28 @@ impl BcCamera {
                 }
                 _ => {}
             };
+        }
+    }
 
-            let msg_motion = sub_motion.rx.recv_timeout(RX_TIMEOUT)?;
-            if let BcBody::ModernMsg(ModernMsg { xml: Some(xml), .. }) = msg_motion.body {
-                if let BcXml {
-                    alarm_event_list: Some(alarm_event_list),
-                    ..
-                } = xml
-                {
-                    for alarm_event in &alarm_event_list.alarm_events {
-                        mqtt.send_message(
-                            &format!("/neolink/{}/state/motion", camera_name),
-                            &alarm_event.status,
-                        );
-                    }
-                } else {
-                    debug!("Got motion xml like this: {:?}", xml);
-                }
-            } else {
-                debug!("Got motion like this: {:?}", msg_motion);
-            }
+    pub fn start_motion(
+        &self,
+        data_out: &Sender<MotionStatus>,
+        channel_id: u32,
+    ) -> Result<Never> {
+        let connection = self
+            .connection
+            .as_ref()
+            .expect("Must be connected to listen to motion detected");
+
+
+        let sub_motion = connection.subscribe(MSG_ID_MOTION)?;
+        let motiondata_sub = MotionDataSubscriber::from_bc_sub(&sub_motion, channel_id);
+        // We get all channel_ids so filter here
+        // Will it match that requested in start_video?
+
+        loop {
+            let status = motiondata_sub.get_motion_status()?;
+            let _ = data_out.send(status);
         }
     }
 }

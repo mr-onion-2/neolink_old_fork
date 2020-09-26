@@ -4,19 +4,21 @@ use gio::TlsAuthenticationMode;
 use log::*;
 use neolink::bc_protocol::BcCamera;
 use neolink::gst::{MaybeAppSrc, RtspServer, StreamFormat};
-use neolink::mqtt::MQTT;
+use crate::mqtt::{MQTT, MotionWriter};
 use neolink::Never;
 use std::collections::HashSet;
 use std::fs;
-use std::io::Write;
 use std::sync::Arc;
 use std::time::Duration;
 use structopt::StructOpt;
 use validator::Validate;
+use crossbeam_channel::Sender;
 
 mod cmdline;
 mod config;
 mod mqtt;
+
+pub(crate) use neolink::bc_protocol::MotionStatus;
 
 use cmdline::Opt;
 use config::{CameraConfig, Config, UserConfig};
@@ -95,8 +97,14 @@ fn main() -> Result<(), Error> {
                     .unwrap();
                 let main_camera = arc_cam.clone();
                 let main_mqtt = arc_mqtt.clone();
+                let (motion_write, motion_sender) = MotionWriter::new_with_tx(&main_camera.name);
                 s.spawn(move |_| {
-                    camera_loop(&*main_camera, "mainStream", &mut output, &*main_mqtt, true)
+                    loop {
+                        motion_write.poll_status(&*main_mqtt);
+                    }
+                });
+                s.spawn(move |_| {
+                    camera_loop(&*main_camera, "mainStream", &mut output, &Some(motion_sender), true)
                 });
             }
             if ["both", "subStream"].iter().any(|&e| e == arc_cam.stream) {
@@ -107,8 +115,20 @@ fn main() -> Result<(), Error> {
                 let sub_camera = arc_cam.clone();
                 let manage = arc_cam.stream == "subStream";
                 let sub_mqtt = arc_mqtt.clone();
+                let motion_sender;
+                if manage {
+                    let (motion_write, motion_sender_i) = MotionWriter::new_with_tx(&*sub_camera.name);
+                    s.spawn(move |_| {
+                        loop {
+                            motion_write.poll_status(&*sub_mqtt);
+                        }
+                    });
+                    motion_sender = Some(motion_sender_i);
+                } else {
+                    motion_sender = None;
+                }
                 s.spawn(move |_| {
-                    camera_loop(&*sub_camera, "subStream", &mut output, &*sub_mqtt, manage)
+                    camera_loop(&*sub_camera, "subStream", &mut output, &motion_sender, manage)
                 });
             }
         }
@@ -124,7 +144,7 @@ fn camera_loop(
     camera_config: &CameraConfig,
     stream_name: &str,
     output: &mut MaybeAppSrc,
-    mqtt: &MQTT,
+    motion_output: &Option<Sender<MotionStatus>>,
     manage: bool,
 ) -> Result<Never, Error> {
     let min_backoff = Duration::from_secs(1);
@@ -132,7 +152,7 @@ fn camera_loop(
     let mut current_backoff = min_backoff;
 
     loop {
-        let cam_err = camera_main(camera_config, stream_name, output, mqtt, manage).unwrap_err();
+        let cam_err = camera_main(camera_config, stream_name, output, motion_output, manage).unwrap_err();
         output.on_stream_error();
         // Authentication failures are permanent; we retry everything else
         if cam_err.connected {
@@ -212,8 +232,8 @@ fn get_permitted_users<'a>(
 fn camera_main(
     camera_config: &CameraConfig,
     stream_name: &str,
-    output: &mut dyn Write,
-    mqtt: &MQTT,
+    output: &mut MaybeAppSrc,
+    motion_output: &Option<Sender<MotionStatus>>,
     manage: bool,
 ) -> Result<Never, CameraErr> {
     let mut connected = false;
@@ -265,7 +285,19 @@ fn camera_main(
             "{}: Starting video stream {}",
             camera_config.name, stream_name
         );
-        camera.start_video(output, &camera_config.name, stream_name, camera_config.channel_id, mqtt)
+        let channel_id = camera_config.channel_id; // Copy out for the spawn
+
+        crossbeam::scope(|s| {
+            let arc_cam = Arc::new(camera);
+            if manage {
+                let motion_cam = arc_cam.clone();
+                if let Some(motion_output) = motion_output {
+                    s.spawn(move |_| (*motion_cam).start_motion(motion_output, channel_id));
+                }
+            }
+            let video_cam = arc_cam;
+            (*video_cam).start_video(output, stream_name, channel_id)
+        }).unwrap()
     })()
     .map_err(|err| CameraErr { connected, err })
 }

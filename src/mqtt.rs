@@ -2,6 +2,8 @@ use crossbeam_utils::thread::Scope;
 use librumqttd::{Broker, Config, LinkTx};
 use std::sync::Mutex;
 use tokio::task;
+use crossbeam_channel::{Sender, Receiver, unbounded};
+use super::MotionStatus;
 
 use log::*;
 
@@ -73,5 +75,35 @@ impl MQTT {
         let tx = broker.link("localclient", 10).unwrap();
         task::spawn(Self::get_messages(tx));
         broker.start().await.unwrap();
+    }
+}
+
+
+pub struct MotionWriter {
+    topic: String,
+    receiver: Receiver<MotionStatus>
+}
+
+impl<'a> MotionWriter {
+    pub fn new_with_tx(cam_name: &str) -> (Self, Sender<MotionStatus>) {
+        let (sender, receiver) = unbounded::<MotionStatus>();
+        let me = Self {
+            topic: format!("/neolink/{}/status/motion", cam_name),
+            receiver,
+        };
+        (me, sender)
+    }
+
+    pub fn poll_status(&self, mqtt: &MQTT) {
+        let data = self.receiver.recv().expect("We should get something");
+        match data {
+            MotionStatus::MotionStart =>  {
+                mqtt.send_message(&self.topic, "on");
+            },
+            MotionStatus::MotionStop => {
+                mqtt.send_message(&self.topic, "off")
+            }
+            _ => {}
+        }
     }
 }
