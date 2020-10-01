@@ -137,6 +137,8 @@ pub struct Preview {
 
 #[derive(PartialEq, Eq, Default, Debug, YaDeserialize, YaSerialize)]
 pub struct Extension {
+    #[yaserde(attribute)]
+    pub version: String,
     #[yaserde(rename = "binaryData")]
     pub binary_data: Option<u32>,
     #[yaserde(rename = "userName")]
