@@ -144,6 +144,8 @@ pub struct Extension {
     #[yaserde(rename = "userName")]
     pub user_name: Option<String>,
     pub token: Option<String>,
+    #[yaserde(rename = "channelId")]
+    pub channel_id: Option<u32>,
 }
 
 #[derive(PartialEq, Eq, Default, Debug, YaDeserialize, YaSerialize)]

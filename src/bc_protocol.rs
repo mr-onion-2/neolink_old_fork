@@ -295,22 +295,79 @@ impl BcCamera {
         }
     }
 
-    pub fn start_motion(
-        &self,
-        data_out: &Sender<MotionStatus>,
-        channel_id: u32,
-        for_user: &str,
-    ) -> Result<Never> {
+    fn ability_support_query_user(&self, for_user: &str) -> Result<Bc> {
+        // Currently unused in neolink other then to match the offical clients
+        // login sequence during testing
         let connection = self
             .connection
             .as_ref()
-            .expect("Must be connected to listen to motion detected");
+            .expect("Must be connected to listen to messages");
 
-        info!("SUBSCRIBING");
-        let info_query = connection.subscribe(151)?;
-        let mut start_motion = Bc::new_from_ext_xml(
+        const MSG_ID: u32 = 58;
+        let query_sub = connection.subscribe(MSG_ID)?;
+        let mut query_in = Bc::new_from_ext_xml(
             BcMeta {
-                msg_id: 151,
+                msg_id: MSG_ID,
+                client_idx: 0, // TODO
+                encrypted: true,
+                class: 0x6414, // IDK why
+            },
+            Extension {
+                version: xml_ver(),
+                user_name: Some(for_user.to_string()),
+                ..Default::default()
+            },
+        );
+        if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
+            mmsg.binary = Some(Default::default());
+        }
+        query_sub.send(query_in)?;
+
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT)?;
+        Ok(response)
+    }
+
+    fn stream_info_query(&self) -> Result<Bc> {
+        // Currently unused in neolink other then to match the offical clients
+        // login sequence during testing
+        let connection = self
+            .connection
+            .as_ref()
+            .expect("Must be connected to listen to messages");
+
+        const MSG_ID: u32 = 146;
+        let query_sub = connection.subscribe(MSG_ID)?;
+        let mut query_in = Bc::new_from_meta(
+            BcMeta {
+                msg_id: MSG_ID,
+                client_idx: 0, // TODO
+                encrypted: true,
+                class: 0x6414, // IDK why
+            },
+        );
+        if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
+            mmsg.binary = Some(Default::default());
+        }
+        query_sub.send(query_in)?;
+
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT)?;
+        Ok(response)
+    }
+
+    fn ability_info_query_user(&self, for_user: &str) -> Result<Bc> {
+        // Currently unused in neolink other then to match the offical clients
+        // login sequence during testing
+        let connection = self
+            .connection
+            .as_ref()
+            .expect("Must be connected to listen to messages");
+
+        const MSG_ID: u32 = 151;
+
+        let query_sub = connection.subscribe(MSG_ID)?;
+        let mut query_in = Bc::new_from_ext_xml(
+            BcMeta {
+                msg_id: MSG_ID,
                 client_idx: 0, // TODO
                 encrypted: true,
                 class: 0x6414, // IDK why
@@ -322,25 +379,361 @@ impl BcCamera {
                 ..Default::default()
             },
         );
-        if let BcBody::ModernMsg(mmsg) = &mut start_motion.body {
+        if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
             mmsg.binary = Some(Default::default());
         }
-        info!("Sending");
-        info_query.send(start_motion)?;
-        info!("SENT!");
+        query_sub.send(query_in)?;
 
-        let start_motion = Bc::new_from_meta(
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT)?;
+        Ok(response)
+    }
+
+    fn unknown_192(&self) -> Result<Bc> {
+        // Currently unused in neolink other then to match the offical clients
+        // login sequence during testing
+        let connection = self
+            .connection
+            .as_ref()
+            .expect("Must be connected to listen to messages");
+
+        const MSG_ID: u32 = 192;
+
+        let query_sub = connection.subscribe(MSG_ID)?;
+        let mut query_in = Bc::new_from_meta(
             BcMeta {
-                msg_id: 33,
+                msg_id: MSG_ID,
                 client_idx: 0, // TODO
                 encrypted: true,
-                class: 0x0000, // IDK why
+                class: 0x6414, // IDK why
             }
         );
+        if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
+            mmsg.binary = Some(Default::default());
+        }
+        query_sub.send(query_in)?;
+
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT)?;
+        Ok(response)
+    }
+
+    fn unknown_31(&self) -> Result<Bc> {
+        // Currently unused in neolink other then to match the offical clients
+        // login sequence during testing
+        let connection = self
+            .connection
+            .as_ref()
+            .expect("Must be connected to listen to messages");
+
+        const MSG_ID: u32 = 31;
+
+        let query_sub = connection.subscribe(MSG_ID)?;
+        let mut query_in = Bc::new_from_meta(
+            BcMeta {
+                msg_id: MSG_ID,
+                client_idx: 0, // TODO
+                encrypted: true,
+                class: 0x6414, // IDK why
+            }
+        );
+        if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
+            mmsg.binary = Some(Default::default());
+        }
+        query_sub.send(query_in)?;
+
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT)?;
+        Ok(response)
+    }
+
+    fn rf_alarm_query(&self) -> Result<Bc> {
+        // Currently unused in neolink other then to match the offical clients
+        // login sequence during testing
+        let connection = self
+            .connection
+            .as_ref()
+            .expect("Must be connected to listen to messages");
+
+        const MSG_ID: u32 = 133;
+
+        let query_sub = connection.subscribe(MSG_ID)?;
+        let mut query_in = Bc::new_from_meta(
+            BcMeta {
+                msg_id: MSG_ID,
+                client_idx: 0, // TODO
+                encrypted: true,
+                class: 0x6414, // IDK why
+            }
+        );
+        if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
+            mmsg.binary = Some(Default::default());
+        }
+        query_sub.send(query_in)?;
+
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT)?;
+        Ok(response)
+    }
+
+    fn hdd_query(&self) -> Result<Bc> {
+        // Currently unused in neolink other then to match the offical clients
+        // login sequence during testing
+        let connection = self
+            .connection
+            .as_ref()
+            .expect("Must be connected to listen to messages");
+
+        const MSG_ID: u32 = 102;
+
+        let query_sub = connection.subscribe(MSG_ID)?;
+        let mut query_in = Bc::new_from_meta(
+            BcMeta {
+                msg_id: MSG_ID,
+                client_idx: 0, // TODO
+                encrypted: true,
+                class: 0x6414, // IDK why
+            }
+        );
+        if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
+            mmsg.binary = Some(Default::default());
+        }
+        query_sub.send(query_in)?;
+
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT)?;
+        Ok(response)
+    }
+
+    fn version_query(&self) -> Result<Bc> {
+        // Currently unused in neolink other then to match the offical clients
+        // login sequence during testing
+        let connection = self
+            .connection
+            .as_ref()
+            .expect("Must be connected to listen to messages");
+
+        const MSG_ID: u32 = 80;
+
+        let query_sub = connection.subscribe(MSG_ID)?;
+        let mut query_in = Bc::new_from_meta(
+            BcMeta {
+                msg_id: MSG_ID,
+                client_idx: 0, // TODO
+                encrypted: true,
+                class: 0x6414, // IDK why
+            }
+        );
+        if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
+            mmsg.binary = Some(Default::default());
+        }
+        query_sub.send(query_in)?;
+
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT)?;
+        Ok(response)
+    }
+
+    fn uid_query(&self) -> Result<Bc> {
+        // Currently unused in neolink other then to match the offical clients
+        // login sequence during testing
+        let connection = self
+            .connection
+            .as_ref()
+            .expect("Must be connected to listen to messages");
+
+        const MSG_ID: u32 = 144;
+
+        let query_sub = connection.subscribe(MSG_ID)?;
+        let mut query_in = Bc::new_from_meta(
+            BcMeta {
+                msg_id: MSG_ID,
+                client_idx: 0, // TODO
+                encrypted: true,
+                class: 0x6414, // IDK why
+            }
+        );
+        if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
+            mmsg.binary = Some(Default::default());
+        }
+        query_sub.send(query_in)?;
+
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT)?;
+        Ok(response)
+    }
+
+    fn datetime_query(&self) -> Result<Bc> {
+        // Currently unused in neolink other then to match the offical clients
+        // login sequence during testing
+        let connection = self
+            .connection
+            .as_ref()
+            .expect("Must be connected to listen to messages");
+
+        const MSG_ID: u32 = 104;
+
+        let query_sub = connection.subscribe(MSG_ID)?;
+        let mut query_in = Bc::new_from_meta(
+            BcMeta {
+                msg_id: MSG_ID,
+                client_idx: 0, // TODO
+                encrypted: true,
+                class: 0x6414, // IDK why
+            }
+        );
+        if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
+            mmsg.binary = Some(Default::default());
+        }
+        query_sub.send(query_in)?;
+
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT)?;
+        Ok(response)
+    }
+
+    fn ability_info_query_camera(&self) -> Result<Bc> {
+        // Currently unused in neolink other then to match the offical clients
+        // login sequence during testing
+        let connection = self
+            .connection
+            .as_ref()
+            .expect("Must be connected to listen to messages");
+
+        const MSG_ID: u32 = 199;
+
+        let query_sub = connection.subscribe(MSG_ID)?;
+        let mut query_in = Bc::new_from_meta(
+            BcMeta {
+                msg_id: MSG_ID,
+                client_idx: 0, // TODO
+                encrypted: true,
+                class: 0x6414, // IDK why
+            }
+        );
+        if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
+            mmsg.binary = Some(Default::default());
+        }
+        query_sub.send(query_in)?;
+
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT)?;
+        Ok(response)
+    }
+
+    fn signal_query(&self) -> Result<Bc> {
+        // Currently unused in neolink other then to match the offical clients
+        // login sequence during testing
+        let connection = self
+            .connection
+            .as_ref()
+            .expect("Must be connected to listen to messages");
+
+        const MSG_ID: u32 = 115;
+
+        let query_sub = connection.subscribe(MSG_ID)?;
+        let mut query_in = Bc::new_from_meta(
+            BcMeta {
+                msg_id: MSG_ID,
+                client_idx: 0, // TODO
+                encrypted: true,
+                class: 0x6414, // IDK why
+            }
+        );
+        if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
+            mmsg.binary = Some(Default::default());
+        }
+        query_sub.send(query_in)?;
+
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT)?;
+        Ok(response)
+    }
+
+    fn ptz_preset_query(&self, channel_id: u32) -> Result<Bc> {
+        // Currently unused in neolink other then to match the offical clients
+        // login sequence during testing
+        let connection = self
+            .connection
+            .as_ref()
+            .expect("Must be connected to listen to messages");
+
+        const MSG_ID: u32 = 10;
+
+        let query_sub = connection.subscribe(MSG_ID)?;
+        let mut query_in = Bc::new_from_ext_xml(
+            BcMeta {
+                msg_id: MSG_ID,
+                client_idx: 0, // TODO
+                encrypted: true,
+                class: 0x6414, // IDK why
+            },
+            Extension {
+                version: xml_ver(),
+                channel_id: Some(channel_id),
+                ..Default::default()
+            },
+        );
+        if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
+            mmsg.binary = Some(Default::default());
+        }
+        query_sub.send(query_in)?;
+
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT)?;
+        Ok(response)
+    }
+
+    fn audio_back_query(&self, channel_id: u32) -> Result<Bc> {
+        // Currently unused in neolink other then to match the offical clients
+        // login sequence during testing
+        let connection = self
+            .connection
+            .as_ref()
+            .expect("Must be connected to listen to messages");
+
+        const MSG_ID: u32 = 10;
+
+        let query_sub = connection.subscribe(MSG_ID)?;
+        let mut query_in = Bc::new_from_ext_xml(
+            BcMeta {
+                msg_id: MSG_ID,
+                client_idx: 0, // TODO
+                encrypted: true,
+                class: 0x6414, // IDK why
+            },
+            Extension {
+                version: xml_ver(),
+                channel_id: Some(channel_id),
+                ..Default::default()
+            },
+        );
+        if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
+            mmsg.binary = Some(Default::default());
+        }
+        query_sub.send(query_in)?;
+
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT)?;
+        Ok(response)
+    }
+
+    pub fn start_motion(
+        &self,
+        data_out: &Sender<MotionStatus>,
+        channel_id: u32,
+        for_user: &str,
+    ) -> Result<Never> {
+        let connection = self
+            .connection
+            .as_ref()
+            .expect("Must be connected to listen to messages");
+
+        self.ability_support_query_user(for_user)?;
+        self.stream_info_query()?;
+        self.unknown_192()?;
+        self.unknown_31()?;
+        self.rf_alarm_query()?;
+        self.hdd_query()?;
+        self.version_query()?;
+        self.uid_query()?;
+        self.ability_info_query_user(for_user)?;
+        self.datetime_query()?;
+        self.ability_info_query_camera()?;
+        self.signal_query()?;
+        self.ptz_preset_query(channel_id)?;
+        self.audio_back_query(channel_id)?;
 
         let sub_motion = connection.subscribe(MSG_ID_MOTION)?;
 
-        sub_motion.send(start_motion)?;
         let motiondata_sub = MotionDataSubscriber::from_bc_sub(&sub_motion, channel_id);
 
 
