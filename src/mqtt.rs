@@ -142,7 +142,7 @@ impl<'a> MotionWriter {
                 }
             }
             _ => {
-                error!("Unknown motion status");
+                trace!("Motion status was no change");
             }
         }
         debug!("Finished posting motion status");
