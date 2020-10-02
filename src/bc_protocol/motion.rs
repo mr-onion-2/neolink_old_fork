@@ -25,7 +25,6 @@ impl<'a> MotionDataSubscriber<'a> {
     }
 
     pub fn get_motion_status(&self) -> Result<MotionStatus> {
-        //debug!("GettingMotion");
         let msg_motion = self.bc_sub.rx.recv_timeout(RX_TIMEOUT);
         if let Ok(msg_motion) = msg_motion {
             if let BcBody::ModernMsg(ModernMsg {

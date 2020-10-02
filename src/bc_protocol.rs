@@ -748,7 +748,9 @@ impl BcCamera {
 
         loop {
             let status = motiondata_sub.get_motion_status()?;
-            let _ = data_out.send(status);
+            if data_out.send(status).is_err() {
+                error!("Failed to send motion status to reciever")
+            }
         }
     }
 }

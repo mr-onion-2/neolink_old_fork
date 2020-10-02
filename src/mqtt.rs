@@ -3,6 +3,7 @@ use crossbeam_channel::{unbounded, Receiver, Sender};
 use librumqttd::{Broker, Config, Error as BrokerError, LinkError, LinkTx, LinkRx};
 use log::*;
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 const MAX_REQUESTS: usize = 200;
 
@@ -11,6 +12,7 @@ pub struct MQTT {
     broker: Mutex<Option<Broker>>,
     tx: Mutex<Option<LinkTx>>,
     rx: Mutex<Option<LinkRx>>,
+    connected: AtomicBool,
 }
 
 #[allow(dead_code)]
@@ -40,16 +42,20 @@ impl MQTT {
         Self {
             broker,
             tx,
-            rx
+            rx,
+            connected: AtomicBool::new(false),
         }
     }
 
     fn ensure_connected(&self) {
-        let tx = &mut self.tx.lock().unwrap();
-        if let Some(tx) = tx.as_mut() {
-            let rx_locked = &mut self.rx.lock().unwrap();
-            rx_locked.get_or_insert_with(||tx.connect(MAX_REQUESTS).unwrap());
-            let _ = tx.subscribe("#");
+        if ! self.connected.load(Ordering::Acquire) {
+            let tx = &mut self.tx.lock().unwrap();
+            if let Some(tx) = tx.as_mut() {
+                let rx_locked = &mut self.rx.lock().unwrap();
+                rx_locked.get_or_insert_with(||tx.connect(MAX_REQUESTS).unwrap());
+                let _ = tx.subscribe("#");
+                self.connected.store(true, Ordering::Release);
+            }
         }
     }
 
@@ -71,10 +77,13 @@ impl MQTT {
     pub fn get_messages(&self) -> Result<Option<Vec<MqttReply>>, LinkError> {
         self.ensure_connected();
 
-        let rx_locked = &mut self.rx.lock().unwrap();
-        let rx = rx_locked.as_mut().unwrap();
+        let reply;
+        { // Unlock as soon as possible
+            let rx_locked = &mut self.rx.lock().unwrap();
+            let rx = rx_locked.as_mut().unwrap();
 
-        let reply = rx.recv()?;
+            reply = rx.recv()?;
+        }
         if let Some(message) = reply {
             debug!(
                 "Incoming. Topic = {}, Payload = {:?}",
@@ -120,16 +129,23 @@ impl<'a> MotionWriter {
 
     pub fn poll_status(&self, mqtt: &MQTT) -> Result<(), LinkError> {
         let data = self.receiver.recv().expect("We should get something");
+        debug!("Got motion status");
         match data {
             MotionStatus::MotionStart => {
-                mqtt.send_message(&self.topic, "on")?;
+                if mqtt.send_message(&self.topic, "on").is_err() {
+                    error!("Failed to send motion to mqtt");
+                }
             }
             MotionStatus::MotionStop => {
-                mqtt.send_message(&self.topic, "off")?;
+                if mqtt.send_message(&self.topic, "off").is_err() {
+                    error!("Failed to send motion to mqtt");
+                }
             }
-            _ => {}
+            _ => {
+                error!("Unknown motion status");
+            }
         }
-
+        debug!("Finished posting motion status");
         Ok(())
     }
 }
