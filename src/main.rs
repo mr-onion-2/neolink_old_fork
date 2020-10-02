@@ -328,7 +328,7 @@ fn camera_main(
             if manage {
                 let motion_cam = arc_cam.clone();
                 if let Some(motion_output) = motion_output {
-                    s.spawn(move |_| (*motion_cam).start_motion(motion_output, channel_id));
+                    s.spawn(move |_| (*motion_cam).start_motion(motion_output, channel_id, &camera_config.username));
                 }
             }
             let video_cam = arc_cam;

@@ -27,7 +27,7 @@ impl<'a> MotionDataSubscriber<'a> {
     }
 
     pub fn get_motion_status(&self) -> Result<MotionStatus> {
-        debug!("GettingMotion");
+        //debug!("GettingMotion");
         let msg_motion = self.bc_sub.rx.recv_timeout(RX_TIMEOUT);
         if let Ok(msg_motion) = msg_motion {
             debug!("GotMotion");
@@ -60,7 +60,7 @@ impl<'a> MotionDataSubscriber<'a> {
                 debug!("Got motion like this: {:?}", msg_motion);
             }
         } else {
-            error!("Failed to get msg_motion");
+            //error!("Failed to get msg_motion");
         }
         Ok(MotionStatus::NoChange)
     }

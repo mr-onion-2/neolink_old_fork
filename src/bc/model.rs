@@ -92,6 +92,16 @@ impl Bc {
             }),
         }
     }
+
+    pub fn new_from_meta(meta: BcMeta) -> Bc {
+        Bc {
+            meta,
+            body: BcBody::ModernMsg(ModernMsg {
+                xml: None,
+                binary: None,
+            }),
+        }
+    }
 }
 
 impl Default for BcContext {

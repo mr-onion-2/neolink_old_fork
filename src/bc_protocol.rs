@@ -295,16 +295,54 @@ impl BcCamera {
         }
     }
 
-    pub fn start_motion(&self, data_out: &Sender<MotionStatus>, channel_id: u32) -> Result<Never> {
+    pub fn start_motion(
+        &self,
+        data_out: &Sender<MotionStatus>,
+        channel_id: u32,
+        for_user: &str,
+    ) -> Result<Never> {
         let connection = self
             .connection
             .as_ref()
             .expect("Must be connected to listen to motion detected");
 
+        info!("SUBSCRIBING");
+        let info_query = connection.subscribe(151)?;
+        let mut start_motion = Bc::new_from_ext_xml(
+            BcMeta {
+                msg_id: 151,
+                client_idx: 0, // TODO
+                encrypted: true,
+                class: 0x6414, // IDK why
+            },
+            Extension {
+                version: xml_ver(),
+                user_name: Some(for_user.to_string()),
+                token: Some("system, network, alarm, record, video, image".to_string()),
+                ..Default::default()
+            },
+        );
+        if let BcBody::ModernMsg(mmsg) = &mut start_motion.body {
+            mmsg.binary = Some(Default::default());
+        }
+        info!("Sending");
+        info_query.send(start_motion)?;
+        info!("SENT!");
+
+        let start_motion = Bc::new_from_meta(
+            BcMeta {
+                msg_id: 33,
+                client_idx: 0, // TODO
+                encrypted: true,
+                class: 0x0000, // IDK why
+            }
+        );
+
         let sub_motion = connection.subscribe(MSG_ID_MOTION)?;
+
+        sub_motion.send(start_motion)?;
         let motiondata_sub = MotionDataSubscriber::from_bc_sub(&sub_motion, channel_id);
-        // We get all channel_ids so filter here
-        // Will it match that requested in start_video?
+
 
         loop {
             let status = motiondata_sub.get_motion_status()?;
