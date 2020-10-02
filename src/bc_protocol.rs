@@ -416,9 +416,9 @@ impl BcCamera {
         Ok(response)
     }
 
-    fn unknown_31(&self) -> Result<Bc> {
-        // Currently unused in neolink other then to match the offical clients
-        // login sequence during testing
+    fn start_motion_query(&self) -> Result<Bc> {
+        // This message tells the camera to send the motion events to us
+        // Which are the recieved on msgid 33
         let connection = self
             .connection
             .as_ref()
@@ -648,7 +648,7 @@ impl BcCamera {
             .as_ref()
             .expect("Must be connected to listen to messages");
 
-        const MSG_ID: u32 = 10;
+        const MSG_ID: u32 = 190;
 
         let query_sub = connection.subscribe(MSG_ID)?;
         let mut query_in = Bc::new_from_ext_xml(
@@ -706,6 +706,28 @@ impl BcCamera {
         Ok(response)
     }
 
+    fn full_login_sequence(&self, channel_id: u32, for_user: &str) -> Result<()> {
+        // Simulates the full offical client post login sequence
+        // We ignore the results, just send the queries
+        // and hope for the best.
+        self.ability_support_query_user(for_user)?;
+        self.stream_info_query()?;
+        self.unknown_192()?;
+        self.start_motion_query()?;
+        self.rf_alarm_query()?;
+        self.hdd_query()?;
+        self.version_query()?;
+        self.uid_query()?;
+        self.ability_info_query_user(for_user)?;
+        self.datetime_query()?;
+        self.ability_info_query_camera()?;
+        self.signal_query()?;
+        self.ptz_preset_query(channel_id)?;
+        self.audio_back_query(channel_id)?;
+
+        Ok(())
+    }
+
     pub fn start_motion(
         &self,
         data_out: &Sender<MotionStatus>,
@@ -717,20 +739,7 @@ impl BcCamera {
             .as_ref()
             .expect("Must be connected to listen to messages");
 
-        self.ability_support_query_user(for_user)?;
-        self.stream_info_query()?;
-        self.unknown_192()?;
-        self.unknown_31()?;
-        self.rf_alarm_query()?;
-        self.hdd_query()?;
-        self.version_query()?;
-        self.uid_query()?;
-        self.ability_info_query_user(for_user)?;
-        self.datetime_query()?;
-        self.ability_info_query_camera()?;
-        self.signal_query()?;
-        self.ptz_preset_query(channel_id)?;
-        self.audio_back_query(channel_id)?;
+        self.start_motion_query()?;
 
         let sub_motion = connection.subscribe(MSG_ID_MOTION)?;
 
