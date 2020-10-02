@@ -62,26 +62,35 @@ fn main() -> Result<(), Error> {
     }
 
     crossbeam::scope(|s| {
+        debug!("Create mqtt");
         let mqtt = MQTT::new(&config.mqtt);
 
         // Share the mqtt across threads
         let arc_mqtt = Arc::new(mqtt);
 
-        // Start polling messages
-        let mqtt_reading = arc_mqtt.clone();
-        s.spawn(move |_| loop {
-            let _ = (*mqtt_reading).get_messages("#");
+        // Start the mqtt server
+        debug!("Start mqtt server");
+        let mqtt_running = arc_mqtt.clone();
+        s.spawn(move |_| {
+            let _ = (*mqtt_running).start();
+            error!("MQTT Stopped");
         });
 
-        // Start the mqtt server
-        let mqtt_running = arc_mqtt.clone();
-        s.spawn(move |_| (*mqtt_running).start());
+        // Start polling messages
+        debug!("Start polling mqtt");
+        let mqtt_reading = arc_mqtt.clone();
+        s.spawn(move |_| loop {
+            let _ = (*mqtt_reading).get_messages();
+        });
 
         // Send test start message to mqtt
+        debug!("Send mqtt test");
         let test_send = arc_mqtt.clone();
         if (*test_send).send_message("/neolink", "start").is_err() {
             error!("Failed to send mqtt start message");
         }
+
+        debug!("mqtt ready");
 
         for camera in config.cameras {
             let stream_format = match &*camera.format {
