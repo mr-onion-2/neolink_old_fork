@@ -1,8 +1,8 @@
 // Dummy version to disable it when compiled on msvc
 use crate::MotionStatus;
 use crossbeam_channel::{unbounded, Receiver, Sender};
-use serde::Deserialize;
 use log::*;
+use serde::Deserialize;
 
 #[allow(dead_code)]
 pub struct MotionWriter {
@@ -17,9 +17,7 @@ pub struct MqttReply {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct MqttConfig {
-
-}
+pub struct MqttConfig {}
 
 #[allow(dead_code)]
 #[allow(unused_variables)]

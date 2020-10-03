@@ -51,7 +51,7 @@ impl MQTT {
 
     fn ensure_connected(&self) {
         let connected = &mut self.connected.lock().unwrap();
-        if ! connected.load(Ordering::Acquire) {
+        if !connected.load(Ordering::Acquire) {
             let tx = &mut self.tx.lock().unwrap();
             if let Some(tx) = tx.as_mut() {
                 let rx_locked = &mut self.rx.lock().unwrap();
