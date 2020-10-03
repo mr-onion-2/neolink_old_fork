@@ -2,6 +2,7 @@
 use crate::MotionStatus;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use serde::Deserialize;
+use log::*;
 
 #[allow(dead_code)]
 pub struct MotionWriter {
@@ -44,6 +45,9 @@ pub struct MQTT;
 #[allow(unused_variables)]
 impl MQTT {
     pub fn new(config: &Option<MqttConfig>) -> Self {
+        if config.is_some() {
+            warn!("MQTT is disabled on msvc build, until it is fixed upstream.");
+        }
         Self {}
     }
 
