@@ -14,7 +14,7 @@ pub struct MQTT {
     broker: Mutex<Option<Broker>>,
     tx: Mutex<Option<LinkTx>>,
     rx: Mutex<Option<LinkRx>>,
-    connected: AtomicBool,
+    connected: Mutex<AtomicBool>,
 }
 
 #[allow(dead_code)]
@@ -45,18 +45,19 @@ impl MQTT {
             broker,
             tx,
             rx,
-            connected: AtomicBool::new(false),
+            connected: Mutex::new(AtomicBool::new(false)),
         }
     }
 
     fn ensure_connected(&self) {
-        if !self.connected.load(Ordering::Acquire) {
+        let connected = &mut self.connected.lock().unwrap();
+        if ! connected.load(Ordering::Acquire) {
             let tx = &mut self.tx.lock().unwrap();
             if let Some(tx) = tx.as_mut() {
                 let rx_locked = &mut self.rx.lock().unwrap();
                 rx_locked.get_or_insert_with(|| tx.connect(MAX_REQUESTS).unwrap());
                 let _ = tx.subscribe("#");
-                self.connected.store(true, Ordering::Release);
+                connected.store(true, Ordering::Release);
             }
         }
     }
