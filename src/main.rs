@@ -73,7 +73,6 @@ fn main() -> Result<(), Error> {
         let mqtt_running = arc_mqtt.clone();
         s.spawn(move |_| {
             let _ = (*mqtt_running).start();
-            error!("MQTT Stopped");
         });
 
         // Start polling messages

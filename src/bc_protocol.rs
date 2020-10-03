@@ -337,14 +337,12 @@ impl BcCamera {
 
         const MSG_ID: u32 = 146;
         let query_sub = connection.subscribe(MSG_ID)?;
-        let mut query_in = Bc::new_from_meta(
-            BcMeta {
-                msg_id: MSG_ID,
-                client_idx: 0, // TODO
-                encrypted: true,
-                class: 0x6414, // IDK why
-            },
-        );
+        let mut query_in = Bc::new_from_meta(BcMeta {
+            msg_id: MSG_ID,
+            client_idx: 0, // TODO
+            encrypted: true,
+            class: 0x6414, // IDK why
+        });
         if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
             mmsg.binary = Some(Default::default());
         }
@@ -399,14 +397,12 @@ impl BcCamera {
         const MSG_ID: u32 = 192;
 
         let query_sub = connection.subscribe(MSG_ID)?;
-        let mut query_in = Bc::new_from_meta(
-            BcMeta {
-                msg_id: MSG_ID,
-                client_idx: 0, // TODO
-                encrypted: true,
-                class: 0x6414, // IDK why
-            }
-        );
+        let mut query_in = Bc::new_from_meta(BcMeta {
+            msg_id: MSG_ID,
+            client_idx: 0, // TODO
+            encrypted: true,
+            class: 0x6414, // IDK why
+        });
         if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
             mmsg.binary = Some(Default::default());
         }
@@ -427,14 +423,12 @@ impl BcCamera {
         const MSG_ID: u32 = 31;
 
         let query_sub = connection.subscribe(MSG_ID)?;
-        let mut query_in = Bc::new_from_meta(
-            BcMeta {
-                msg_id: MSG_ID,
-                client_idx: 0, // TODO
-                encrypted: true,
-                class: 0x6414, // IDK why
-            }
-        );
+        let mut query_in = Bc::new_from_meta(BcMeta {
+            msg_id: MSG_ID,
+            client_idx: 0, // TODO
+            encrypted: true,
+            class: 0x6414, // IDK why
+        });
         if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
             mmsg.binary = Some(Default::default());
         }
@@ -455,14 +449,12 @@ impl BcCamera {
         const MSG_ID: u32 = 133;
 
         let query_sub = connection.subscribe(MSG_ID)?;
-        let mut query_in = Bc::new_from_meta(
-            BcMeta {
-                msg_id: MSG_ID,
-                client_idx: 0, // TODO
-                encrypted: true,
-                class: 0x6414, // IDK why
-            }
-        );
+        let mut query_in = Bc::new_from_meta(BcMeta {
+            msg_id: MSG_ID,
+            client_idx: 0, // TODO
+            encrypted: true,
+            class: 0x6414, // IDK why
+        });
         if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
             mmsg.binary = Some(Default::default());
         }
@@ -483,14 +475,12 @@ impl BcCamera {
         const MSG_ID: u32 = 102;
 
         let query_sub = connection.subscribe(MSG_ID)?;
-        let mut query_in = Bc::new_from_meta(
-            BcMeta {
-                msg_id: MSG_ID,
-                client_idx: 0, // TODO
-                encrypted: true,
-                class: 0x6414, // IDK why
-            }
-        );
+        let mut query_in = Bc::new_from_meta(BcMeta {
+            msg_id: MSG_ID,
+            client_idx: 0, // TODO
+            encrypted: true,
+            class: 0x6414, // IDK why
+        });
         if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
             mmsg.binary = Some(Default::default());
         }
@@ -511,14 +501,12 @@ impl BcCamera {
         const MSG_ID: u32 = 80;
 
         let query_sub = connection.subscribe(MSG_ID)?;
-        let mut query_in = Bc::new_from_meta(
-            BcMeta {
-                msg_id: MSG_ID,
-                client_idx: 0, // TODO
-                encrypted: true,
-                class: 0x6414, // IDK why
-            }
-        );
+        let mut query_in = Bc::new_from_meta(BcMeta {
+            msg_id: MSG_ID,
+            client_idx: 0, // TODO
+            encrypted: true,
+            class: 0x6414, // IDK why
+        });
         if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
             mmsg.binary = Some(Default::default());
         }
@@ -539,14 +527,12 @@ impl BcCamera {
         const MSG_ID: u32 = 144;
 
         let query_sub = connection.subscribe(MSG_ID)?;
-        let mut query_in = Bc::new_from_meta(
-            BcMeta {
-                msg_id: MSG_ID,
-                client_idx: 0, // TODO
-                encrypted: true,
-                class: 0x6414, // IDK why
-            }
-        );
+        let mut query_in = Bc::new_from_meta(BcMeta {
+            msg_id: MSG_ID,
+            client_idx: 0, // TODO
+            encrypted: true,
+            class: 0x6414, // IDK why
+        });
         if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
             mmsg.binary = Some(Default::default());
         }
@@ -567,14 +553,12 @@ impl BcCamera {
         const MSG_ID: u32 = 104;
 
         let query_sub = connection.subscribe(MSG_ID)?;
-        let mut query_in = Bc::new_from_meta(
-            BcMeta {
-                msg_id: MSG_ID,
-                client_idx: 0, // TODO
-                encrypted: true,
-                class: 0x6414, // IDK why
-            }
-        );
+        let mut query_in = Bc::new_from_meta(BcMeta {
+            msg_id: MSG_ID,
+            client_idx: 0, // TODO
+            encrypted: true,
+            class: 0x6414, // IDK why
+        });
         if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
             mmsg.binary = Some(Default::default());
         }
@@ -595,14 +579,12 @@ impl BcCamera {
         const MSG_ID: u32 = 199;
 
         let query_sub = connection.subscribe(MSG_ID)?;
-        let mut query_in = Bc::new_from_meta(
-            BcMeta {
-                msg_id: MSG_ID,
-                client_idx: 0, // TODO
-                encrypted: true,
-                class: 0x6414, // IDK why
-            }
-        );
+        let mut query_in = Bc::new_from_meta(BcMeta {
+            msg_id: MSG_ID,
+            client_idx: 0, // TODO
+            encrypted: true,
+            class: 0x6414, // IDK why
+        });
         if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
             mmsg.binary = Some(Default::default());
         }
@@ -623,14 +605,12 @@ impl BcCamera {
         const MSG_ID: u32 = 115;
 
         let query_sub = connection.subscribe(MSG_ID)?;
-        let mut query_in = Bc::new_from_meta(
-            BcMeta {
-                msg_id: MSG_ID,
-                client_idx: 0, // TODO
-                encrypted: true,
-                class: 0x6414, // IDK why
-            }
-        );
+        let mut query_in = Bc::new_from_meta(BcMeta {
+            msg_id: MSG_ID,
+            client_idx: 0, // TODO
+            encrypted: true,
+            class: 0x6414, // IDK why
+        });
         if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
             mmsg.binary = Some(Default::default());
         }
@@ -744,7 +724,6 @@ impl BcCamera {
         let sub_motion = connection.subscribe(MSG_ID_MOTION)?;
 
         let motiondata_sub = MotionDataSubscriber::from_bc_sub(&sub_motion, channel_id);
-
 
         loop {
             let status = motiondata_sub.get_motion_status()?;
