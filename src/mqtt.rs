@@ -41,9 +41,11 @@ pub struct MqttConfig {
     client_auth: Option<(std::path::PathBuf, std::path::PathBuf)>,
 }
 
-fn validate_mqtt_config(config: &MqttConfig) -> Result<(), ValidationError>{
+fn validate_mqtt_config(config: &MqttConfig) -> Result<(), ValidationError> {
     if config.ca.is_some() && config.client_auth.is_some() {
-        Err(ValidationError::new("Cannot have both ca and client_auth set"))
+        Err(ValidationError::new(
+            "Cannot have both ca and client_auth set",
+        ))
     } else {
         Ok(())
     }
