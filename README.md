@@ -92,11 +92,18 @@ about running Docker are outside the scope of Neolink.
 
 ## Configuration
 
-**Note**: for a more comprehensive setup tutorial, refer to the
-[Blue Iris setup walkthrough in `docs/`][blue-iris-setup] (which is probably
-  also helpful even with other NVR software).
+**Note**: for a more comprehensive setup tutorial, refer to:
+- Blue Iris:
+  [Blue Iris setup walkthrough in `docs/`][blue-iris-setup] (which is probably
+    also helpful even with other NVR software).
+
+- Unix:
+  [Unix setup walkthrough in `docs/`][unix-setup] (there is also a doc for
+    setting up a service in the same folder)
 
 [blue-iris-setup]: docs/Setting%20Up%20Neolink%20For%20Use%20With%20Blue%20Iris.md
+
+[unix-setup]: docs/unix_setup.md
 
 Copy and modify the `sample_config.toml` to specify the address, username, and
 password for each camera (if there is no password, you can omit that line).
@@ -106,10 +113,23 @@ path you should connect your client to.
 Currently Neolink cannot auto-detect cameras like the official clients do; you
 must specify their IP addresses directly.
 
+```toml
+[[camera]]
+name = "CameraName"
+address = "IPADDRESS:9000"
+```
+
 By default the H265 video format is used. Some cameras, for example E1, provide
 H264 streams. To use these you must specify `format = "h264"` in the
 `[[cameras]]` config. Soon this will be auto-detected, and you will not have to know or care about
 the format.
+
+```toml
+[[camera]]
+name = "CameraName"
+address = "IPADDRESS:9000"
+format = "h265"
+```
 
 By default, the HD stream is available at the RTSP path `/name` or
 `/name/mainStream`, and the SD stream is available at `/name/subStream`.
@@ -119,9 +139,28 @@ You can use only the HD stream by adding `stream = "mainStream"` to the
 **Note**: The B400/D400 models only support a single stream at a time, so you
 must add this line to sections for those cameras.
 
+```toml
+[[camera]]
+name = "CameraName"
+address = "IPADDRESS:9000"
+format = "h265"
+stream = "both"
+```
+
 By default Neolink serves on all IP addresses on port 8554.
 You can modify this by changing the `bind` and the `bind_port` parameter.
 You only need one `bind`/`bind_port` setting at the top of the config file.
+
+```toml
+bind = "0.0.0.0"
+bind_port = 8554
+
+[[camera]]
+name = "CameraName"
+address = "IPADDRESS:9000"
+format = "h265"
+stream = "both"
+```
 
 You can enable `rtsps` (TLS) by adding a `certificate = "/path/to/pem"` to the
 top section of the config file. This PEM should contain by the certificate
@@ -130,22 +169,57 @@ and the key used for the server. If TLS is enabled all connections must use
 `tls_client_auth = "none|request|require"`; in this case the client should
 present a certificate signed by the server's CA.
 
+```toml
+bind = "0.0.0.0"
+bind_port = 8554
+certificate = "/path/to/certificate"
+
+[[camera]]
+name = "CameraName"
+address = "IPADDRESS:9000"
+format = "h265"
+stream = "both"
+```
+
 TLS is disabled by default.
 
 You can password-protect the Neolink server by adding `[[users]]` sections to
 the configuration file:
 
-```
+```toml
+bind = "0.0.0.0"
+bind_port = 8554
+certificate = "/path/to/certificate"
+
+[[camera]]
+name = "CameraName"
+address = "IPADDRESS:9000"
+format = "h265"
+stream = "both"
+
 [[users]]
-name: someone
-pass: somepass
+name = "someone"
+pass = "somepass"
 ```
 
 you also need to add the allowed users into each camera by adding the following
 to `[[cameras]]`.
 
-```
+```toml
+bind = "0.0.0.0"
+bind_port = 8554
+certificate = "/path/to/certificate"
+
+[[camera]]
+name = "CameraName"
+address = "IPADDRESS:9000"
+format = "h265"
+stream = "both"
 permitted_users = ["someone", "someoneelse"]
+
+[[users]]
+name = "someone"
+pass = "somepass"
 ```
 
 Anywhere a username is accepted it can take any username or one of the
