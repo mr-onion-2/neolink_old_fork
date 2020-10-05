@@ -1,5 +1,6 @@
-use crate::mqtt::{MotionWriter, MQTT};
+use crate::mqtt::{MotionWriter, MqttConfig, MQTT};
 use crossbeam_channel::Sender;
+use crossbeam_utils::thread::Scope;
 use env_logger::Env;
 use err_derive::Error;
 use gio::TlsAuthenticationMode;
@@ -62,35 +63,6 @@ fn main() -> Result<(), Error> {
     }
 
     crossbeam::scope(|s| {
-        debug!("Create mqtt");
-        let mqtt = MQTT::new(&config.mqtt);
-
-        // Share the mqtt across threads
-        let arc_mqtt = Arc::new(mqtt);
-
-        // Start the mqtt server
-        debug!("Start mqtt server");
-        let mqtt_running = arc_mqtt.clone();
-        s.spawn(move |_| {
-            let _ = (*mqtt_running).start();
-        });
-
-        // Start polling messages
-        debug!("Start polling mqtt");
-        let mqtt_reading = arc_mqtt.clone();
-        s.spawn(move |_| loop {
-            let _ = (*mqtt_reading).get_messages();
-        });
-
-        // Send test start message to mqtt
-        debug!("Send mqtt test");
-        let test_send = arc_mqtt.clone();
-        if (*test_send).send_message("/neolink", "start").is_err() {
-            error!("Failed to send mqtt start message");
-        }
-
-        debug!("mqtt ready");
-
         for camera in config.cameras {
             let stream_format = match &*camera.format {
                 "h264" | "H264" => StreamFormat::H264,
@@ -121,17 +93,18 @@ fn main() -> Result<(), Error> {
                     .add_stream(paths, stream_format, &permitted_users)
                     .unwrap();
                 let main_camera = arc_cam.clone();
-                let main_mqtt = arc_mqtt.clone();
-                let (motion_write, motion_sender) = MotionWriter::new_with_tx(&main_camera.name);
-                s.spawn(move |_| loop {
-                    let _ = motion_write.poll_status(&*main_mqtt);
-                });
+
+                let motion_sender = match main_camera.mqtt.as_ref() {
+                    Some(mqtt_config) => Some(set_up_mqtt(s, mqtt_config, &main_camera.name)),
+                    None => None,
+                };
+
                 s.spawn(move |_| {
                     camera_loop(
                         &*main_camera,
                         "mainStream",
                         &mut output,
-                        &Some(motion_sender),
+                        &motion_sender,
                         true,
                     )
                 });
@@ -143,15 +116,12 @@ fn main() -> Result<(), Error> {
                     .unwrap();
                 let sub_camera = arc_cam.clone();
                 let manage = arc_cam.stream == "subStream";
-                let sub_mqtt = arc_mqtt.clone();
                 let motion_sender;
                 if manage {
-                    let (motion_write, motion_sender_i) =
-                        MotionWriter::new_with_tx(&*sub_camera.name);
-                    s.spawn(move |_| loop {
-                        let _ = motion_write.poll_status(&*sub_mqtt);
-                    });
-                    motion_sender = Some(motion_sender_i);
+                    motion_sender = match sub_camera.mqtt.as_ref() {
+                        Some(mqtt_config) => Some(set_up_mqtt(s, mqtt_config, &sub_camera.name)),
+                        None => None,
+                    };
                 } else {
                     motion_sender = None;
                 }
@@ -172,6 +142,45 @@ fn main() -> Result<(), Error> {
     .unwrap();
 
     Ok(())
+}
+
+fn set_up_mqtt(s: &Scope, mqtt_config: &MqttConfig, name: &str) -> Sender<MotionStatus> {
+    // Setup mqtt
+    debug!("Create mqtt");
+    let mqtt = MQTT::new(mqtt_config, name);
+    let (motion_write, motion_sender) = MotionWriter::new_with_tx(name);
+
+    // Share the mqtt across threads
+    let arc_mqtt = Arc::new(mqtt);
+
+    // Start the mqtt server
+    debug!("Start mqtt server");
+    let mqtt_running = arc_mqtt.clone();
+    s.spawn(move |_| {
+        let _ = (*mqtt_running).start();
+    });
+
+    // Start polling messages
+    debug!("Start polling mqtt");
+    let mqtt_reading = arc_mqtt.clone();
+    s.spawn(move |_| loop {
+        let _ = (*mqtt_reading).get_message();
+    });
+
+    // Send test start message to mqtt
+    debug!("Send mqtt test");
+    let test_send = arc_mqtt.clone();
+    if (*test_send).send_message("/neolink", "start").is_err() {
+        error!("Failed to send mqtt start message");
+    }
+
+    let main_mqtt = arc_mqtt;
+    s.spawn(move |_| loop {
+        let _ = motion_write.poll_status(&*main_mqtt);
+    });
+    debug!("mqtt ready");
+
+    motion_sender
 }
 
 fn camera_loop(

@@ -41,9 +41,6 @@ pub struct Config {
     #[validate]
     #[serde(default)]
     pub users: Vec<UserConfig>,
-
-    #[serde(default = "default_mqtt")]
-    pub mqtt: Option<MqttConfig>,
 }
 
 #[derive(Debug, Deserialize, Validate, Clone)]
@@ -80,6 +77,9 @@ pub struct CameraConfig {
     #[validate(range(min = 0, max = 31, message = "Invalid channel", code = "channel_id"))]
     #[serde(default = "default_channel_id")]
     pub channel_id: u32,
+
+    #[serde(default = "default_mqtt")]
+    pub mqtt: Option<MqttConfig>,
 }
 
 #[derive(Debug, Deserialize, Validate, Clone)]
