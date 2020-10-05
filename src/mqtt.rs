@@ -97,10 +97,10 @@ impl MQTT {
         Ok(())
     }
 
-    pub fn send_message(&self, topic: &str, message: &str) -> Result<(), ClientError> {
+    pub fn send_message(&self, sub_topic: &str, message: &str) -> Result<(), ClientError> {
         let mut client = self.client.lock().unwrap();
         client.publish(
-            format!("/neolink/{}/{}", self.name, topic),
+            format!("/neolink/{}/{}", self.name, sub_topic),
             QoS::AtLeastOnce,
             false,
             message,
@@ -121,6 +121,7 @@ impl MQTT {
         // This acts as an event loop
         let mut connection = self.connection.lock().unwrap();
         let (sender, _) = &self.incoming;
+        info!("Starting MQTT Client for {}", self.name);
         loop {
             for (_i, notification) in connection.iter().enumerate() {
                 trace!("MQTT Notification = {:?}", notification);
@@ -151,10 +152,10 @@ pub struct MotionWriter {
 }
 
 impl<'a> MotionWriter {
-    pub fn new_with_tx(cam_name: &str) -> (Self, Sender<MotionStatus>) {
+    pub fn new_with_tx() -> (Self, Sender<MotionStatus>) {
         let (sender, receiver) = unbounded::<MotionStatus>();
         let me = Self {
-            topic: format!("/neolink/{}/status/motion", cam_name),
+            topic: "status/motion".to_string(),
             receiver,
         };
         (me, sender)
@@ -162,7 +163,7 @@ impl<'a> MotionWriter {
 
     pub fn poll_status(&self, mqtt: &MQTT) {
         let data = self.receiver.recv().expect("We should get something");
-        debug!("Got motion status");
+        trace!("Got motion status");
         match data {
             MotionStatus::MotionStart => {
                 if mqtt.send_message(&self.topic, "on").is_err() {
@@ -178,6 +179,6 @@ impl<'a> MotionWriter {
                 trace!("Motion status was no change");
             }
         }
-        debug!("Finished posting motion status");
+        trace!("Finished posting motion status");
     }
 }

@@ -146,39 +146,41 @@ fn main() -> Result<(), Error> {
 
 fn set_up_mqtt(s: &Scope, mqtt_config: &MqttConfig, name: &str) -> Sender<MotionStatus> {
     // Setup mqtt
-    debug!("Create mqtt");
+    debug!("Setting up mqtt for {}", name);
     let mqtt = MQTT::new(mqtt_config, name);
-    let (motion_write, motion_sender) = MotionWriter::new_with_tx(name);
+    let (motion_write, motion_sender) = MotionWriter::new_with_tx();
 
     // Share the mqtt across threads
     let arc_mqtt = Arc::new(mqtt);
 
     // Start the mqtt server
-    debug!("Start mqtt server");
     let mqtt_running = arc_mqtt.clone();
     s.spawn(move |_| {
         let _ = (*mqtt_running).start();
     });
 
     // Start polling messages
-    debug!("Start polling mqtt");
     let mqtt_reading = arc_mqtt.clone();
+    let arc_name = Arc::new(name.to_string());
     s.spawn(move |_| loop {
-        let _ = (*mqtt_reading).get_message();
+        if (*mqtt_reading).get_message().is_err() {
+            error!("Failed to get messages from mqtt client {}", (*arc_name));
+        }
     });
 
     // Send test start message to mqtt
-    debug!("Send mqtt test");
     let test_send = arc_mqtt.clone();
-    if (*test_send).send_message("/neolink", "start").is_err() {
-        error!("Failed to send mqtt start message");
+    if (*test_send).send_message("start", "start").is_err() {
+        error!(
+            "Failed to send mqtt start message from mqtt client {}",
+            name
+        );
     }
 
     let main_mqtt = arc_mqtt;
     s.spawn(move |_| loop {
-        let _ = motion_write.poll_status(&*main_mqtt);
+        motion_write.poll_status(&*main_mqtt);
     });
-    debug!("mqtt ready");
 
     motion_sender
 }
