@@ -78,6 +78,7 @@ pub struct CameraConfig {
     #[serde(default = "default_channel_id")]
     pub channel_id: u32,
 
+    #[validate]
     #[serde(default = "default_mqtt")]
     pub mqtt: Option<MqttConfig>,
 }

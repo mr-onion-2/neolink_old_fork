@@ -6,6 +6,8 @@ use rumqttc::{
 };
 use serde::Deserialize;
 use std::sync::Mutex;
+use validator::{Validate, ValidationError};
+use validator_derive::Validate;
 
 pub struct MQTT {
     client: Mutex<Client>,
@@ -21,7 +23,8 @@ pub struct MqttReply {
     message: String,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Validate)]
+#[validate(schema(function = "validate_mqtt_config", skip_on_field_errors = true))]
 pub struct MqttConfig {
     #[serde(alias = "server")]
     broker_addr: String,
@@ -36,6 +39,14 @@ pub struct MqttConfig {
 
     #[serde(default)]
     client_auth: Option<(std::path::PathBuf, std::path::PathBuf)>,
+}
+
+fn validate_mqtt_config(config: &MqttConfig) -> Result<(), ValidationError>{
+    if config.ca.is_some() && config.client_auth.is_some() {
+        Err(ValidationError::new("Cannot have both ca and client_auth set"))
+    } else {
+        Ok(())
+    }
 }
 
 impl MQTT {
