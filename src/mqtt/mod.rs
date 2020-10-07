@@ -1,6 +1,3 @@
-mod control;
-mod status;
-
 use crossbeam_channel::{unbounded, Receiver, RecvError, Sender};
 use log::*;
 use rumqttc::{
@@ -11,14 +8,6 @@ use serde::Deserialize;
 use std::sync::{Arc, Mutex};
 use validator::{Validate, ValidationError};
 use validator_derive::Validate;
-
-use status::connection::{ConnectionSender};
-use status::motion::{MotionSender};
-
-pub use status::connection::ConnectionStatus;
-
-use crate::MotionStatus;
-
 
 pub struct MQTT {
     client: Mutex<Client>,
@@ -187,11 +176,19 @@ impl MQTT {
         }
     }
 
-    pub fn make_motion_tx(mqtt: Arc<MQTT>) -> Sender<MotionStatus> {
-        MotionSender::create_tx(mqtt)
+    pub fn publish_connection(&self, connected: bool) -> Result<(), ClientError> {
+        match connected {
+            true => self.send_message("status", "connected", true)?,
+            false => self.send_message("status", "disconnected", true)?,
+        }
+        Ok(())
     }
 
-    pub fn make_connection_tx(mqtt: Arc<Self>) -> Sender<ConnectionStatus> {
-        ConnectionSender::create_tx(mqtt)
+    pub fn publish_motion(&self, movement_detected: bool) -> Result<(), ClientError> {
+        match movement_detected {
+            true => self.send_message("status/motion", "on", true)?,
+            false => self.send_message("status/motion", "off", true)?,
+        }
+        Ok(())
     }
 }
