@@ -732,6 +732,41 @@ impl BcCamera {
             }
         }
     }
+
+    pub fn enable_led(
+        &self,
+        channel_id: u32,
+        enable: bool,
+    ) -> Result<Bc> {
+        let connection = self
+            .connection
+            .as_ref()
+            .expect("Must be connected to listen to messages");
+
+        const MSG_ID: u32 = 209;
+
+        let query_sub = connection.subscribe(MSG_ID)?;
+        let mut query_in = Bc::new_from_ext_xml(
+            BcMeta {
+                msg_id: MSG_ID,
+                client_idx: 0, // TODO
+                encrypted: true,
+                class: 0x6414, // IDK why
+            },
+            Extension {
+                version: xml_ver(),
+                channel_id: Some(channel_id),
+                ..Default::default()
+            },
+        );
+        if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
+            mmsg.binary = Some(Default::default());
+        }
+        query_sub.send(query_in)?;
+
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT)?;
+        Ok(response)
+    }
 }
 
 /// The Baichuan library has a very peculiar behavior where it always zeros the last byte.  I

@@ -14,13 +14,12 @@ pub struct MQTT {
     connection: Mutex<Connection>,
     name: String,
     incoming: (Sender<Publish>, Receiver<Publish>),
+    msg_channel: (Sender<MqttReply>, Receiver<MqttReply>)
 }
 
-// Currently we don't read replies but we could do command and control with it.
-#[allow(dead_code)]
 pub struct MqttReply {
-    topic: String,
-    message: String,
+    pub topic: String,
+    pub message: String,
 }
 
 #[derive(Debug, Deserialize, Clone, Validate)]
@@ -54,6 +53,7 @@ fn validate_mqtt_config(config: &MqttConfig) -> Result<(), ValidationError> {
 impl MQTT {
     pub fn new(config: &MqttConfig, name: &str) -> Arc<Self> {
         let incoming = unbounded::<Publish>();
+        let msg_channel = unbounded::<MqttReply>();
         let mut mqttoptions = MqttOptions::new(
             format!("Neolink-{}", name),
             &config.broker_addr,
@@ -94,6 +94,7 @@ impl MQTT {
             connection: Mutex::new(connection),
             name: name.to_string(),
             incoming,
+            msg_channel,
         };
 
         let arc_me = Arc::new(me);
@@ -108,7 +109,7 @@ impl MQTT {
         let mqtt_reading = arc_me.clone();
         let arc_name = Arc::new(name.to_string());
         std::thread::spawn(move || loop {
-            if (*mqtt_reading).get_message().is_err() {
+            if (*mqtt_reading).handle_message().is_err() {
                 error!("Failed to get messages from mqtt client {}", (*arc_name));
             }
         });
@@ -138,13 +139,24 @@ impl MQTT {
         Ok(())
     }
 
-    pub fn get_message(&self) -> Result<Option<MqttReply>, RecvError> {
+    fn handle_message(&self) -> Result<(), RecvError> {
         let (_, receiver) = &self.incoming;
         let published_message = receiver.recv()?;
-        Ok(Some(MqttReply {
-            topic: published_message.topic,
-            message: String::from_utf8_lossy(published_message.payload.as_ref()).into_owned(),
-        }))
+
+        if let Some(sub_topic) = published_message.topic.strip_prefix(&format!("neolink/{}/", &self.name)) {
+            if self.msg_channel.0.send(MqttReply {
+                topic: sub_topic.to_string(),
+                message: String::from_utf8_lossy(published_message.payload.as_ref()).into_owned(),
+            }).is_err() {
+                error!("Failed to send messages up the mqtt msg channel");
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn get_message_listener(&self) -> Receiver<MqttReply> {
+        self.msg_channel.1.clone()
     }
 
     pub fn start(&self) -> Result<(), ClientError> {
@@ -174,21 +186,5 @@ impl MQTT {
                 }
             }
         }
-    }
-
-    pub fn publish_connection(&self, connected: bool) -> Result<(), ClientError> {
-        match connected {
-            true => self.send_message("status", "connected", true)?,
-            false => self.send_message("status", "disconnected", true)?,
-        }
-        Ok(())
-    }
-
-    pub fn publish_motion(&self, movement_detected: bool) -> Result<(), ClientError> {
-        match movement_detected {
-            true => self.send_message("status/motion", "on", true)?,
-            false => self.send_message("status/motion", "off", true)?,
-        }
-        Ok(())
     }
 }

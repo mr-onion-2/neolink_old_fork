@@ -9,7 +9,7 @@ use neolink::gst::{MaybeAppSrc, RtspServer, StreamFormat};
 use neolink::Never;
 use std::collections::HashSet;
 use std::fs;
-use std::sync::Arc;
+use std::sync::{Arc, atomic::AtomicBool, atomic::Ordering};
 use std::time::Duration;
 use structopt::StructOpt;
 use validator::Validate;
@@ -167,7 +167,7 @@ fn camera_loop(
         output.on_stream_error();
 
         if let Some(mqtt) = arc_mqtt.as_ref() {
-            if mqtt.publish_connection(false).is_err() {
+            if mqtt.send_message("status", "disconnected", true).is_err() {
                 error!("Failed to post dissconnect over MQTT for {}", &camera_config.name);
             }
         }
@@ -275,7 +275,7 @@ fn camera_main(
 
         if manage {
             if let Some(mqtt) = arc_mqtt.as_ref() {
-                if mqtt.publish_connection(true).is_err() {
+                if mqtt.send_message("status", "connected", true).is_err() {
                     error!("Failed to post connect over MQTT for {}", camera_config.name);
                 }
             }
@@ -313,20 +313,24 @@ fn camera_main(
 
         crossbeam::scope(|s| {
             let arc_cam = Arc::new(camera);
+            let cancel_now = Arc::new(AtomicBool::new(false));
+            let recv_wait = Duration::from_millis(500);
             if manage {
                 if let Some(mqtt) = arc_mqtt.as_ref() {
+                    // Motion
                     let (motion_write, motion_read) = unbounded::<MotionStatus>();
-                    s.spawn(move |_| loop {
-                        let motion_status = motion_read.recv();
+                    let motion_cancel = cancel_now.clone();
+                    s.spawn(move |_| while ! (motion_cancel.load(Ordering::Relaxed)) {
+                        let motion_status = motion_read.recv_timeout(recv_wait);
                         if let Ok(motion_status) = motion_status {
                             match motion_status {
                                 MotionStatus::MotionStart => {
-                                    if mqtt.publish_motion(true).is_err() {
+                                    if mqtt.send_message("status/motion", "on", true).is_err() {
                                         error!("Failed to publish motion start for {}", camera_config.name);
                                     }
                                 },
                                 MotionStatus::MotionStop => {
-                                    if mqtt.publish_motion(false).is_err() {
+                                    if mqtt.send_message("status/motion", "off", true).is_err() {
                                         error!("Failed to publish motion stop for {}", camera_config.name);
                                     }
                                 },
@@ -336,10 +340,28 @@ fn camera_main(
                     });
                     let motion_cam = arc_cam.clone();
                     s.spawn(move |_| (*motion_cam).start_motion(&motion_write, channel_id, &camera_config.username));
+
+                    // Led
+                    let msg_channel = mqtt.get_message_listener();
+                    let led_cam = arc_cam.clone();
+                    let led_cancel = cancel_now.clone();
+                    s.spawn(move |_| while ! (led_cancel.load(Ordering::Relaxed)) {
+                        if let Ok(msg) = msg_channel.recv_timeout(recv_wait) {
+                            if msg.topic == "control/led" {
+                                match msg.message.as_str() {
+                                    "on" => {let _ = led_cam.enable_led(channel_id, true);},
+                                    "off" => {let _ = led_cam.enable_led(channel_id, false);},
+                                    _ => {},
+                                };
+                            }
+                        }
+                    });
                 }
             }
             let video_cam = arc_cam;
-            (*video_cam).start_video(output, stream_name, channel_id)
+            let err = (*video_cam).start_video(output, stream_name, channel_id);
+            cancel_now.store(true, Ordering::Relaxed);
+            err
         }).unwrap()
     })()
     .map_err(|err| CameraErr { connected, err })
