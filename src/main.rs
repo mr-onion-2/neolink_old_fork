@@ -1,4 +1,4 @@
-use crate::mqtt::{MotionWriter, MqttConfig, MQTT};
+use crate::mqtt::{MotionWriter, ConnectionWriter, MqttConfig, MQTT};
 use crossbeam_channel::Sender;
 use crossbeam_utils::thread::Scope;
 use env_logger::Env;
@@ -36,6 +36,12 @@ pub enum Error {
     ValidationError(#[error(source)] validator::ValidationErrors),
 }
 
+// Used in the MQTT channel to pass connection status messages
+pub enum ConnectionStatus {
+    Connected,
+    Disconnected,
+}
+
 fn main() -> Result<(), Error> {
     env_logger::from_env(Env::default().default_filter_or("info")).init();
 
@@ -70,6 +76,8 @@ fn main() -> Result<(), Error> {
                 custom_format => StreamFormat::Custom(custom_format.to_string()),
             };
 
+            let arc_mqtt = set_up_mqtt(s, &camera.mqtt, &camera.name);
+
             // Let subthreads share the camera object; in principle I think they could share
             // the object as it sits in the config.cameras block, but I have not figured out the
             // syntax for that.
@@ -93,10 +101,17 @@ fn main() -> Result<(), Error> {
                     .add_stream(paths, stream_format, &permitted_users)
                     .unwrap();
                 let main_camera = arc_cam.clone();
-
-                let motion_sender = match main_camera.mqtt.as_ref() {
-                    Some(mqtt_config) => Some(set_up_mqtt(s, mqtt_config, &main_camera.name)),
-                    None => None,
+                let motion_sender;
+                let connection_sender;
+                match arc_mqtt.as_ref() {
+                    Some(arc_mqtt) => {
+                        motion_sender = Some(MotionWriter::create_tx(arc_mqtt.clone()));
+                        connection_sender = Some(ConnectionWriter::create_tx(arc_mqtt.clone()));
+                    }
+                    None => {
+                        motion_sender = None;
+                        connection_sender = None;
+                    }
                 };
 
                 s.spawn(move |_| {
@@ -105,6 +120,7 @@ fn main() -> Result<(), Error> {
                         "mainStream",
                         &mut output,
                         &motion_sender,
+                        &connection_sender,
                         true,
                     )
                 });
@@ -117,13 +133,21 @@ fn main() -> Result<(), Error> {
                 let sub_camera = arc_cam.clone();
                 let manage = arc_cam.stream == "subStream";
                 let motion_sender;
+                let connection_sender;
                 if manage {
-                    motion_sender = match sub_camera.mqtt.as_ref() {
-                        Some(mqtt_config) => Some(set_up_mqtt(s, mqtt_config, &sub_camera.name)),
-                        None => None,
+                    match arc_mqtt.as_ref() {
+                        Some(arc_mqtt) => {
+                            motion_sender = Some(MotionWriter::create_tx(arc_mqtt.clone()));
+                            connection_sender = Some(ConnectionWriter::create_tx(arc_mqtt.clone()));
+                        }
+                        None => {
+                            motion_sender = None;
+                            connection_sender = None;
+                        }
                     };
                 } else {
                     motion_sender = None;
+                    connection_sender = None;
                 }
                 s.spawn(move |_| {
                     camera_loop(
@@ -131,6 +155,7 @@ fn main() -> Result<(), Error> {
                         "subStream",
                         &mut output,
                         &motion_sender,
+                        &connection_sender,
                         manage,
                     )
                 });
@@ -144,14 +169,16 @@ fn main() -> Result<(), Error> {
     Ok(())
 }
 
-fn set_up_mqtt(s: &Scope, mqtt_config: &MqttConfig, name: &str) -> Sender<MotionStatus> {
+fn set_up_mqtt(s: &Scope, mqtt_config: &Option<MqttConfig>, name: &str) -> Option<Arc<MQTT>> {
     // Setup mqtt
+    if mqtt_config.is_none() {
+        return None;
+    }
     debug!("Setting up mqtt for {}", name);
-    let mqtt = MQTT::new(mqtt_config, name);
-    let (motion_write, motion_sender) = MotionWriter::new_with_tx();
-
+    let mqtt = MQTT::new(mqtt_config.as_ref().unwrap(), name);
     // Share the mqtt across threads
     let arc_mqtt = Arc::new(mqtt);
+
 
     // Start the mqtt server
     let mqtt_running = arc_mqtt.clone();
@@ -168,21 +195,7 @@ fn set_up_mqtt(s: &Scope, mqtt_config: &MqttConfig, name: &str) -> Sender<Motion
         }
     });
 
-    // Send test start message to mqtt
-    let test_send = arc_mqtt.clone();
-    if (*test_send).send_message("start", "start").is_err() {
-        error!(
-            "Failed to send mqtt start message from mqtt client {}",
-            name
-        );
-    }
-
-    let main_mqtt = arc_mqtt;
-    s.spawn(move |_| loop {
-        motion_write.poll_status(&*main_mqtt);
-    });
-
-    motion_sender
+    Some(arc_mqtt)
 }
 
 fn camera_loop(
@@ -190,6 +203,7 @@ fn camera_loop(
     stream_name: &str,
     output: &mut MaybeAppSrc,
     motion_output: &Option<Sender<MotionStatus>>,
+    connection_output: &Option<Sender<ConnectionStatus>>,
     manage: bool,
 ) -> Result<Never, Error> {
     let min_backoff = Duration::from_secs(1);
@@ -198,8 +212,15 @@ fn camera_loop(
 
     loop {
         let cam_err =
-            camera_main(camera_config, stream_name, output, motion_output, manage).unwrap_err();
+            camera_main(camera_config, stream_name, output, motion_output, connection_output, manage).unwrap_err();
         output.on_stream_error();
+
+        if let Some(connection_output) = connection_output {
+            if connection_output.send(ConnectionStatus::Disconnected).is_err() {
+                error!("Connection status was not updated via mqtt");
+            }
+        }
+
         // Authentication failures are permanent; we retry everything else
         if cam_err.connected {
             current_backoff = min_backoff;
@@ -280,6 +301,7 @@ fn camera_main(
     stream_name: &str,
     output: &mut MaybeAppSrc,
     motion_output: &Option<Sender<MotionStatus>>,
+    connection_output: &Option<Sender<ConnectionStatus>>,
     manage: bool,
 ) -> Result<Never, CameraErr> {
     let mut connected = false;
@@ -300,6 +322,11 @@ fn camera_main(
 
         connected = true;
         info!("{}: Connected and logged in", camera_config.name);
+        if let Some(connection_output) = connection_output {
+            if connection_output.send(ConnectionStatus::Connected).is_err() {
+                error!("Connection status was not updated via mqtt");
+            }
+        }
 
         if manage {
             let cam_time = camera.get_time()?;

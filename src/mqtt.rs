@@ -1,13 +1,15 @@
-use crate::MotionStatus;
+use crate::{MotionStatus, ConnectionStatus};
 use crossbeam_channel::{unbounded, Receiver, RecvError, Sender};
 use log::*;
 use rumqttc::{
     Client, ClientError, ConnectReturnCode, Connection, Event, Incoming, MqttOptions, Publish, QoS,
+    LastWill,
 };
 use serde::Deserialize;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use validator::{Validate, ValidationError};
 use validator_derive::Validate;
+
 
 pub struct MQTT {
     client: Mutex<Client>,
@@ -81,6 +83,12 @@ impl MQTT {
         }
 
         mqttoptions.set_keep_alive(5);
+        mqttoptions.set_last_will(LastWill::new(
+            format!("neolink/{}/status", name),
+            "offline",
+            QoS::AtLeastOnce,
+            true
+        ));
         let (client, connection) = Client::new(mqttoptions, 10);
 
         Self {
@@ -93,16 +101,21 @@ impl MQTT {
 
     fn subscribe(&self) -> Result<(), ClientError> {
         let mut client = self.client.lock().unwrap();
-        client.subscribe(format!("/neolink/{}/#", self.name), QoS::AtMostOnce)?;
+        client.subscribe(format!("neolink/{}/#", self.name), QoS::AtMostOnce)?;
         Ok(())
     }
 
-    pub fn send_message(&self, sub_topic: &str, message: &str) -> Result<(), ClientError> {
+    fn update_status(&self) -> Result<(), ClientError> {
+        self.send_message("status", "disconnected", true)?;
+        Ok(())
+    }
+
+    pub fn send_message(&self, sub_topic: &str, message: &str, retain: bool) -> Result<(), ClientError> {
         let mut client = self.client.lock().unwrap();
         client.publish(
-            format!("/neolink/{}/{}", self.name, sub_topic),
+            format!("neolink/{}/{}", self.name, sub_topic),
             QoS::AtLeastOnce,
-            false,
+            retain,
             message,
         )?;
         Ok(())
@@ -129,6 +142,7 @@ impl MQTT {
                     match notification {
                         Event::Incoming(Incoming::ConnAck(connected)) => {
                             if ConnectReturnCode::Accepted == connected.code {
+                                self.update_status()?;
                                 // We succesfully logged in. Now ask for the cameras subscription.
                                 self.subscribe()?;
                             }
@@ -149,29 +163,34 @@ impl MQTT {
 pub struct MotionWriter {
     topic: String,
     receiver: Receiver<MotionStatus>,
+    mqtt: Arc<MQTT>,
 }
 
 impl<'a> MotionWriter {
-    pub fn new_with_tx() -> (Self, Sender<MotionStatus>) {
+    pub fn create_tx(mqtt: Arc<MQTT>) -> Sender<MotionStatus> {
         let (sender, receiver) = unbounded::<MotionStatus>();
         let me = Self {
             topic: "status/motion".to_string(),
             receiver,
+            mqtt,
         };
-        (me, sender)
+        std::thread::spawn(move || loop {
+            me.poll_status();
+        });
+        sender
     }
 
-    pub fn poll_status(&self, mqtt: &MQTT) {
+    fn poll_status(&self) {
         let data = self.receiver.recv().expect("We should get something");
         trace!("Got motion status");
         match data {
             MotionStatus::MotionStart => {
-                if mqtt.send_message(&self.topic, "on").is_err() {
+                if (*self.mqtt).send_message(&self.topic, "on", true).is_err() {
                     error!("Failed to send motion to mqtt");
                 }
             }
             MotionStatus::MotionStop => {
-                if mqtt.send_message(&self.topic, "off").is_err() {
+                if (*self.mqtt).send_message(&self.topic, "off", true).is_err() {
                     error!("Failed to send motion to mqtt");
                 }
             }
@@ -180,5 +199,44 @@ impl<'a> MotionWriter {
             }
         }
         trace!("Finished posting motion status");
+    }
+}
+
+pub struct ConnectionWriter {
+    topic: String,
+    receiver: Receiver<ConnectionStatus>,
+    mqtt: Arc<MQTT>,
+}
+
+impl<'a> ConnectionWriter {
+    pub fn create_tx(mqtt: Arc<MQTT>) -> Sender<ConnectionStatus> {
+        let (sender, receiver) = unbounded::<ConnectionStatus>();
+        let me = Self {
+            topic: "status".to_string(),
+            receiver,
+            mqtt,
+        };
+        std::thread::spawn(move || loop {
+            me.poll_status();
+        });
+        sender
+    }
+
+    fn poll_status(&self) {
+        let data = self.receiver.recv().expect("We should get something");
+        trace!("Got connection status");
+        match data {
+            ConnectionStatus::Connected => {
+                if (*self.mqtt).send_message(&self.topic, "connected", true).is_err() {
+                    error!("Failed to send connection status to mqtt");
+                }
+            }
+            ConnectionStatus::Disconnected => {
+                if (*self.mqtt).send_message(&self.topic, "disconnected", true).is_err() {
+                    error!("Failed to send connection status to mqtt");
+                }
+            }
+        }
+        trace!("Finished posting connection status status");
     }
 }
