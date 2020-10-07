@@ -1,6 +1,5 @@
-use crate::mqtt::{MotionWriter, ConnectionWriter, MqttConfig, MQTT};
+use crate::mqtt::{MqttConfig, MQTT};
 use crossbeam_channel::Sender;
-use crossbeam_utils::thread::Scope;
 use env_logger::Env;
 use err_derive::Error;
 use gio::TlsAuthenticationMode;
@@ -76,7 +75,7 @@ fn main() -> Result<(), Error> {
                 custom_format => StreamFormat::Custom(custom_format.to_string()),
             };
 
-            let arc_mqtt = set_up_mqtt(s, &camera.mqtt, &camera.name);
+            let arc_mqtt = set_up_mqtt(&camera.mqtt, &camera.name);
 
             // Let subthreads share the camera object; in principle I think they could share
             // the object as it sits in the config.cameras block, but I have not figured out the
@@ -105,8 +104,8 @@ fn main() -> Result<(), Error> {
                 let connection_sender;
                 match arc_mqtt.as_ref() {
                     Some(arc_mqtt) => {
-                        motion_sender = Some(MotionWriter::create_tx(arc_mqtt.clone()));
-                        connection_sender = Some(ConnectionWriter::create_tx(arc_mqtt.clone()));
+                        motion_sender = Some(MQTT::make_motion_tx(arc_mqtt.clone()));
+                        connection_sender = Some(MQTT::make_connection_tx(arc_mqtt.clone()));
                     }
                     None => {
                         motion_sender = None;
@@ -137,8 +136,8 @@ fn main() -> Result<(), Error> {
                 if manage {
                     match arc_mqtt.as_ref() {
                         Some(arc_mqtt) => {
-                            motion_sender = Some(MotionWriter::create_tx(arc_mqtt.clone()));
-                            connection_sender = Some(ConnectionWriter::create_tx(arc_mqtt.clone()));
+                            motion_sender = Some(MQTT::make_motion_tx(arc_mqtt.clone()));
+                            connection_sender = Some(MQTT::make_connection_tx(arc_mqtt.clone()));
                         }
                         None => {
                             motion_sender = None;
@@ -169,31 +168,13 @@ fn main() -> Result<(), Error> {
     Ok(())
 }
 
-fn set_up_mqtt(s: &Scope, mqtt_config: &Option<MqttConfig>, name: &str) -> Option<Arc<MQTT>> {
+fn set_up_mqtt(mqtt_config: &Option<MqttConfig>, name: &str) -> Option<Arc<MQTT>> {
     // Setup mqtt
     if mqtt_config.is_none() {
         return None;
     }
     debug!("Setting up mqtt for {}", name);
-    let mqtt = MQTT::new(mqtt_config.as_ref().unwrap(), name);
-    // Share the mqtt across threads
-    let arc_mqtt = Arc::new(mqtt);
-
-
-    // Start the mqtt server
-    let mqtt_running = arc_mqtt.clone();
-    s.spawn(move |_| {
-        let _ = (*mqtt_running).start();
-    });
-
-    // Start polling messages
-    let mqtt_reading = arc_mqtt.clone();
-    let arc_name = Arc::new(name.to_string());
-    s.spawn(move |_| loop {
-        if (*mqtt_reading).get_message().is_err() {
-            error!("Failed to get messages from mqtt client {}", (*arc_name));
-        }
-    });
+    let arc_mqtt = MQTT::new(mqtt_config.as_ref().unwrap(), name);
 
     Some(arc_mqtt)
 }

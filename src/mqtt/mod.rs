@@ -1,3 +1,6 @@
+mod control;
+mod status;
+
 use crate::{MotionStatus, ConnectionStatus};
 use crossbeam_channel::{unbounded, Receiver, RecvError, Sender};
 use log::*;
@@ -9,6 +12,9 @@ use serde::Deserialize;
 use std::sync::{Arc, Mutex};
 use validator::{Validate, ValidationError};
 use validator_derive::Validate;
+
+use status::connection::ConnectionWriter;
+use status::motion::MotionWriter;
 
 
 pub struct MQTT {
@@ -54,7 +60,7 @@ fn validate_mqtt_config(config: &MqttConfig) -> Result<(), ValidationError> {
 }
 
 impl MQTT {
-    pub fn new(config: &MqttConfig, name: &str) -> Self {
+    pub fn new(config: &MqttConfig, name: &str) -> Arc<Self> {
         let incoming = unbounded::<Publish>();
         let mut mqttoptions = MqttOptions::new(
             format!("Neolink-{}", name),
@@ -91,12 +97,31 @@ impl MQTT {
         ));
         let (client, connection) = Client::new(mqttoptions, 10);
 
-        Self {
+        let me = Self {
             client: Mutex::new(client),
             connection: Mutex::new(connection),
             name: name.to_string(),
             incoming,
-        }
+        };
+
+        let arc_me = Arc::new(me);
+
+        // Start the mqtt server
+        let mqtt_running = arc_me.clone();
+        std::thread::spawn(move || {
+            let _ = (*mqtt_running).start();
+        });
+
+        // Start polling messages
+        let mqtt_reading = arc_me.clone();
+        let arc_name = Arc::new(name.to_string());
+        std::thread::spawn(move || loop {
+            if (*mqtt_reading).get_message().is_err() {
+                error!("Failed to get messages from mqtt client {}", (*arc_name));
+            }
+        });
+
+        arc_me
     }
 
     fn subscribe(&self) -> Result<(), ClientError> {
@@ -158,85 +183,12 @@ impl MQTT {
             }
         }
     }
-}
 
-pub struct MotionWriter {
-    topic: String,
-    receiver: Receiver<MotionStatus>,
-    mqtt: Arc<MQTT>,
-}
-
-impl<'a> MotionWriter {
-    pub fn create_tx(mqtt: Arc<MQTT>) -> Sender<MotionStatus> {
-        let (sender, receiver) = unbounded::<MotionStatus>();
-        let me = Self {
-            topic: "status/motion".to_string(),
-            receiver,
-            mqtt,
-        };
-        std::thread::spawn(move || loop {
-            me.poll_status();
-        });
-        sender
+    pub fn make_motion_tx(mqtt: Arc<MQTT>) -> Sender<MotionStatus> {
+        MotionWriter::create_tx(mqtt)
     }
 
-    fn poll_status(&self) {
-        let data = self.receiver.recv().expect("We should get something");
-        trace!("Got motion status");
-        match data {
-            MotionStatus::MotionStart => {
-                if (*self.mqtt).send_message(&self.topic, "on", true).is_err() {
-                    error!("Failed to send motion to mqtt");
-                }
-            }
-            MotionStatus::MotionStop => {
-                if (*self.mqtt).send_message(&self.topic, "off", true).is_err() {
-                    error!("Failed to send motion to mqtt");
-                }
-            }
-            _ => {
-                trace!("Motion status was no change");
-            }
-        }
-        trace!("Finished posting motion status");
-    }
-}
-
-pub struct ConnectionWriter {
-    topic: String,
-    receiver: Receiver<ConnectionStatus>,
-    mqtt: Arc<MQTT>,
-}
-
-impl<'a> ConnectionWriter {
-    pub fn create_tx(mqtt: Arc<MQTT>) -> Sender<ConnectionStatus> {
-        let (sender, receiver) = unbounded::<ConnectionStatus>();
-        let me = Self {
-            topic: "status".to_string(),
-            receiver,
-            mqtt,
-        };
-        std::thread::spawn(move || loop {
-            me.poll_status();
-        });
-        sender
-    }
-
-    fn poll_status(&self) {
-        let data = self.receiver.recv().expect("We should get something");
-        trace!("Got connection status");
-        match data {
-            ConnectionStatus::Connected => {
-                if (*self.mqtt).send_message(&self.topic, "connected", true).is_err() {
-                    error!("Failed to send connection status to mqtt");
-                }
-            }
-            ConnectionStatus::Disconnected => {
-                if (*self.mqtt).send_message(&self.topic, "disconnected", true).is_err() {
-                    error!("Failed to send connection status to mqtt");
-                }
-            }
-        }
-        trace!("Finished posting connection status status");
+    pub fn make_connection_tx(mqtt: Arc<Self>) -> Sender<ConnectionStatus> {
+        ConnectionWriter::create_tx(mqtt)
     }
 }
