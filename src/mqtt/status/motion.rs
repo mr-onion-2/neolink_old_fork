@@ -1,16 +1,16 @@
-use crate::{MotionStatus};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use log::*;
 use std::sync::{Arc};
 use crate::mqtt::MQTT;
+use crate::MotionStatus;
 
-pub struct MotionWriter {
+pub struct MotionSender {
     topic: String,
     receiver: Receiver<MotionStatus>,
     mqtt: Arc<MQTT>,
 }
 
-impl<'a> MotionWriter {
+impl<'a> MotionSender {
     pub fn create_tx(mqtt: Arc<MQTT>) -> Sender<MotionStatus> {
         let (sender, receiver) = unbounded::<MotionStatus>();
         let me = Self {
@@ -37,10 +37,8 @@ impl<'a> MotionWriter {
                 if (*self.mqtt).send_message(&self.topic, "off", true).is_err() {
                     error!("Failed to send motion to mqtt");
                 }
-            }
-            _ => {
-                trace!("Motion status was no change");
-            }
+            },
+            _ => {}
         }
         trace!("Finished posting motion status");
     }

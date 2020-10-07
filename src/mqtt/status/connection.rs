@@ -1,16 +1,20 @@
-use crate::{ConnectionStatus};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use log::*;
 use std::sync::{Arc};
 use crate::mqtt::MQTT;
 
-pub struct ConnectionWriter {
+pub struct ConnectionSender {
     topic: String,
     receiver: Receiver<ConnectionStatus>,
     mqtt: Arc<MQTT>,
 }
 
-impl<'a> ConnectionWriter {
+pub enum ConnectionStatus {
+    Connected,
+    Disconnected,
+}
+
+impl<'a> ConnectionSender {
     pub fn create_tx(mqtt: Arc<MQTT>) -> Sender<ConnectionStatus> {
         let (sender, receiver) = unbounded::<ConnectionStatus>();
         let me = Self {

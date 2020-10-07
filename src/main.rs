@@ -1,5 +1,5 @@
-use crate::mqtt::{MqttConfig, MQTT};
-use crossbeam_channel::Sender;
+use crate::mqtt::{MqttConfig, MQTT, ConnectionStatus};
+use crossbeam_channel::{Sender};
 use env_logger::Env;
 use err_derive::Error;
 use gio::TlsAuthenticationMode;
@@ -33,12 +33,6 @@ pub enum Error {
     IoError(#[error(source)] std::io::Error),
     #[error(display = "Validation error")]
     ValidationError(#[error(source)] validator::ValidationErrors),
-}
-
-// Used in the MQTT channel to pass connection status messages
-pub enum ConnectionStatus {
-    Connected,
-    Disconnected,
 }
 
 fn main() -> Result<(), Error> {
@@ -344,9 +338,9 @@ fn camera_main(
         crossbeam::scope(|s| {
             let arc_cam = Arc::new(camera);
             if manage {
-                let motion_cam = arc_cam.clone();
                 if let Some(motion_output) = motion_output {
-                    s.spawn(move |_| (*motion_cam).start_motion(motion_output, channel_id, &camera_config.username));
+                    let motion_cam = arc_cam.clone();
+                    s.spawn(move |_| (*motion_cam).start_motion(&motion_output, channel_id, &camera_config.username));
                 }
             }
             let video_cam = arc_cam;

@@ -1,7 +1,6 @@
 mod control;
 mod status;
 
-use crate::{MotionStatus, ConnectionStatus};
 use crossbeam_channel::{unbounded, Receiver, RecvError, Sender};
 use log::*;
 use rumqttc::{
@@ -13,8 +12,12 @@ use std::sync::{Arc, Mutex};
 use validator::{Validate, ValidationError};
 use validator_derive::Validate;
 
-use status::connection::ConnectionWriter;
-use status::motion::MotionWriter;
+use status::connection::{ConnectionSender};
+use status::motion::{MotionSender};
+
+pub use status::connection::ConnectionStatus;
+
+use crate::MotionStatus;
 
 
 pub struct MQTT {
@@ -185,10 +188,10 @@ impl MQTT {
     }
 
     pub fn make_motion_tx(mqtt: Arc<MQTT>) -> Sender<MotionStatus> {
-        MotionWriter::create_tx(mqtt)
+        MotionSender::create_tx(mqtt)
     }
 
     pub fn make_connection_tx(mqtt: Arc<Self>) -> Sender<ConnectionStatus> {
-        ConnectionWriter::create_tx(mqtt)
+        ConnectionSender::create_tx(mqtt)
     }
 }
