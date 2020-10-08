@@ -24,6 +24,7 @@ use cmdline::Opt;
 use config::{CameraConfig, Config, UserConfig};
 
 #[derive(Debug, Error)]
+#[allow(clippy::large_enum_variant)]
 pub enum Error {
     #[error(display = "Configuration parsing error")]
     ConfigError(#[error(source)] toml::de::Error),
@@ -321,8 +322,7 @@ fn camera_main(
                     let (motion_write, motion_read) = unbounded::<MotionStatus>();
                     let motion_cancel = cancel_now.clone();
                     s.spawn(move |_| while ! (motion_cancel.load(Ordering::Relaxed)) {
-                        let motion_status = motion_read.recv_timeout(recv_wait);
-                        if let Ok(motion_status) = motion_status {
+                        if let Ok(motion_status) = motion_read.recv_timeout(recv_wait) {
                             match motion_status {
                                 MotionStatus::MotionStart => {
                                     if mqtt.send_message("status/motion", "on", true).is_err() {
