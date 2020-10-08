@@ -60,6 +60,8 @@ pub struct BcXml {
     pub norm: Option<Norm>,
     #[yaserde(rename = "AlarmEventList")]
     pub alarm_event_list: Option<AlarmEventList>,
+    #[yaserde(rename = "LedState")]
+    pub led_state: Option<LedState>,
 }
 
 impl BcXmls {
@@ -201,6 +203,19 @@ pub struct AlarmEventList {
     pub version: String,
     #[yaserde(rename = "AlarmEvent")]
     pub alarm_events: Vec<AlarmEvent>,
+}
+
+#[derive(PartialEq, Eq, Default, Debug, YaDeserialize, YaSerialize)]
+pub struct LedState {
+    #[yaserde(attribute)]
+    pub version: String,
+    #[yaserde(rename = "channelId")]
+    pub channel_id: u32,
+    #[yaserde(rename = "ledVersion")]
+    pub led_version: Option<u32>,
+    pub state: String,
+    #[yaserde(rename = "lightState")]
+    pub light_state: String,
 }
 
 #[derive(PartialEq, Eq, Default, Debug, YaDeserialize, YaSerialize)]

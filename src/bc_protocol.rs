@@ -852,7 +852,19 @@ impl BcCamera {
             },
         );
         if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
-            mmsg.payload = Some(Default::default());
+            mmsg.payload = Some(BcPayloads::BcXml(BcXml{
+                led_state: Some(LedState{
+                    channel_id,
+                    state: "close".to_string(), // Turn off auto
+                    light_state: if enable {
+                        "open".to_string()
+                    } else {
+                        "close".to_string()
+                    },
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }));
         }
         query_sub.send(query_in)?;
 
