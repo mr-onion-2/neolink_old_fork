@@ -144,8 +144,8 @@ impl BcCamera {
         let nonce;
         match legacy_reply.body {
             BcBody::ModernMsg(ModernMsg {
-                xml:
-                    Some(BcXmls::BcXml(BcXml {
+                payload:
+                    Some(BcPayloads::BcXml(BcXml {
                         encryption: Some(encryption),
                         ..
                     })),
@@ -214,7 +214,7 @@ impl BcCamera {
                 device_info = info;
             }
             BcBody::ModernMsg(ModernMsg {
-                xml: None,
+                extension: None,
                 payload: None,
             }) => return Err(Error::AuthFailed),
             _ => {
@@ -321,7 +321,7 @@ impl BcCamera {
 
         const MSG_ID: u32 = 58;
         let query_sub = connection.subscribe(MSG_ID)?;
-        let mut query_in = Bc::new_from_ext_xml(
+        let mut query_in = Bc::new_from_ext(
             BcMeta {
                 msg_id: MSG_ID,
                 client_idx: 0, // TODO
@@ -385,7 +385,7 @@ impl BcCamera {
         const MSG_ID: u32 = 151;
 
         let query_sub = connection.subscribe(MSG_ID)?;
-        let mut query_in = Bc::new_from_ext_xml(
+        let mut query_in = Bc::new_from_ext(
             BcMeta {
                 msg_id: MSG_ID,
                 client_idx: 0, // TODO
@@ -683,7 +683,7 @@ impl BcCamera {
         const MSG_ID: u32 = 190;
 
         let query_sub = connection.subscribe(MSG_ID)?;
-        let mut query_in = Bc::new_from_ext_xml(
+        let mut query_in = Bc::new_from_ext(
             BcMeta {
                 msg_id: MSG_ID,
                 client_idx: 0, // TODO
@@ -719,7 +719,7 @@ impl BcCamera {
         const MSG_ID: u32 = 10;
 
         let query_sub = connection.subscribe(MSG_ID)?;
-        let mut query_in = Bc::new_from_ext_xml(
+        let mut query_in = Bc::new_from_ext(
             BcMeta {
                 msg_id: MSG_ID,
                 client_idx: 0, // TODO
@@ -800,7 +800,7 @@ impl BcCamera {
         const MSG_ID: u32 = 209;
 
         let query_sub = connection.subscribe(MSG_ID)?;
-        let mut query_in = Bc::new_from_ext_xml(
+        let mut query_in = Bc::new_from_ext(
             BcMeta {
                 msg_id: MSG_ID,
                 client_idx: 0, // TODO
