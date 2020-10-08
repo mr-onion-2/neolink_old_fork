@@ -817,7 +817,7 @@ impl BcCamera {
             mmsg.payload = Some(BcPayloads::BcXml(BcXml {
                 led_state: Some(LedState {
                     channel_id,
-                    state: "close".to_string(), // Turn off auto
+                    state: "auto".to_string(), // Infra red is either auto/close TODO: Poll current status
                     light_state: if enable {
                         "open".to_string()
                     } else {
