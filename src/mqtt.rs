@@ -1,8 +1,8 @@
 use crossbeam_channel::{unbounded, Receiver, RecvError, Sender};
 use log::*;
 use rumqttc::{
-    Client, ClientError, ConnectReturnCode, Connection, Event, Incoming, MqttOptions, Publish, QoS,
-    LastWill,
+    Client, ClientError, ConnectReturnCode, Connection, Event, Incoming, LastWill, MqttOptions,
+    Publish, QoS,
 };
 use serde::Deserialize;
 use std::sync::{Arc, Mutex};
@@ -14,7 +14,7 @@ pub struct MQTT {
     connection: Mutex<Connection>,
     name: String,
     incoming: (Sender<Publish>, Receiver<Publish>),
-    msg_channel: (Sender<MqttReply>, Receiver<MqttReply>)
+    msg_channel: (Sender<MqttReply>, Receiver<MqttReply>),
 }
 
 pub struct MqttReply {
@@ -85,7 +85,7 @@ impl MQTT {
             format!("neolink/{}/status", name),
             "offline",
             QoS::AtLeastOnce,
-            true
+            true,
         ));
         let (client, connection) = Client::new(mqttoptions, 10);
 
@@ -128,7 +128,12 @@ impl MQTT {
         Ok(())
     }
 
-    pub fn send_message(&self, sub_topic: &str, message: &str, retain: bool) -> Result<(), ClientError> {
+    pub fn send_message(
+        &self,
+        sub_topic: &str,
+        message: &str,
+        retain: bool,
+    ) -> Result<(), ClientError> {
         let mut client = self.client.lock().unwrap();
         client.publish(
             format!("neolink/{}/{}", self.name, sub_topic),
@@ -143,11 +148,20 @@ impl MQTT {
         let (_, receiver) = &self.incoming;
         let published_message = receiver.recv()?;
 
-        if let Some(sub_topic) = published_message.topic.strip_prefix(&format!("neolink/{}/", &self.name)) {
-            if self.msg_channel.0.send(MqttReply {
-                topic: sub_topic.to_string(),
-                message: String::from_utf8_lossy(published_message.payload.as_ref()).into_owned(),
-            }).is_err() {
+        if let Some(sub_topic) = published_message
+            .topic
+            .strip_prefix(&format!("neolink/{}/", &self.name))
+        {
+            if self
+                .msg_channel
+                .0
+                .send(MqttReply {
+                    topic: sub_topic.to_string(),
+                    message: String::from_utf8_lossy(published_message.payload.as_ref())
+                        .into_owned(),
+                })
+                .is_err()
+            {
                 error!("Failed to send messages up the mqtt msg channel");
             }
         }

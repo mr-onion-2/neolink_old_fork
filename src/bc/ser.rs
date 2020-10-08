@@ -1,5 +1,5 @@
 use super::model::*;
-use super::xml::{BcXmls, BcPayloads};
+use super::xml::{BcPayloads, BcXmls};
 use super::xml_crypto;
 use cookie_factory::bytes::*;
 use cookie_factory::sequence::tuple;
@@ -73,7 +73,7 @@ fn bc_payload<W: Write>(enc_offset: u32, payload: &BcPayloads) -> impl Serialize
         BcPayloads::BcXml(x) => {
             let xml_bytes = x.serialize(vec![]).unwrap();
             xml_crypto::crypt(enc_offset, &xml_bytes)
-        },
+        }
         BcPayloads::Binary(x) => x.to_owned(),
     };
     slice(payload_bytes)

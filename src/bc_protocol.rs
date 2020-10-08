@@ -136,11 +136,9 @@ impl BcCamera {
 
         sub_login.send(legacy_login)?;
 
-        let legacy_reply = sub_login.rx.recv_timeout(RX_TIMEOUT).map_err(|e| {
-            match e {
-                std::sync::mpsc::RecvTimeoutError::Timeout => {Error::TimeoutTimeout}
-                std::sync::mpsc::RecvTimeoutError::Disconnected => {Error::TimeoutDropped}
-            }
+        let legacy_reply = sub_login.rx.recv_timeout(RX_TIMEOUT).map_err(|e| match e {
+            std::sync::mpsc::RecvTimeoutError::Timeout => Error::TimeoutTimeout,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::TimeoutDropped,
         })?;
 
         let nonce;
@@ -196,11 +194,9 @@ impl BcCamera {
         );
 
         sub_login.send(modern_login)?;
-        let modern_reply = sub_login.rx.recv_timeout(RX_TIMEOUT).map_err(|e| {
-            match e {
-                std::sync::mpsc::RecvTimeoutError::Timeout => {Error::TimeoutTimeout}
-                std::sync::mpsc::RecvTimeoutError::Disconnected => {Error::TimeoutDropped}
-            }
+        let modern_reply = sub_login.rx.recv_timeout(RX_TIMEOUT).map_err(|e| match e {
+            std::sync::mpsc::RecvTimeoutError::Timeout => Error::TimeoutTimeout,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::TimeoutDropped,
         })?;
 
         let device_info;
@@ -258,11 +254,9 @@ impl BcCamera {
 
         sub_ping.send(ping)?;
 
-        sub_ping.rx.recv_timeout(RX_TIMEOUT).map_err(|e| {
-            match e {
-                std::sync::mpsc::RecvTimeoutError::Timeout => {Error::TimeoutTimeout}
-                std::sync::mpsc::RecvTimeoutError::Disconnected => {Error::TimeoutDropped}
-            }
+        sub_ping.rx.recv_timeout(RX_TIMEOUT).map_err(|e| match e {
+            std::sync::mpsc::RecvTimeoutError::Timeout => Error::TimeoutTimeout,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::TimeoutDropped,
         })?;
 
         Ok(())
@@ -345,11 +339,9 @@ impl BcCamera {
         }
         query_sub.send(query_in)?;
 
-        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| {
-            match e {
-                std::sync::mpsc::RecvTimeoutError::Timeout => {Error::TimeoutTimeout}
-                std::sync::mpsc::RecvTimeoutError::Disconnected => {Error::TimeoutDropped}
-            }
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| match e {
+            std::sync::mpsc::RecvTimeoutError::Timeout => Error::TimeoutTimeout,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::TimeoutDropped,
         })?;
         Ok(response)
     }
@@ -375,11 +367,9 @@ impl BcCamera {
         }
         query_sub.send(query_in)?;
 
-        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| {
-            match e {
-                std::sync::mpsc::RecvTimeoutError::Timeout => {Error::TimeoutTimeout}
-                std::sync::mpsc::RecvTimeoutError::Disconnected => {Error::TimeoutDropped}
-            }
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| match e {
+            std::sync::mpsc::RecvTimeoutError::Timeout => Error::TimeoutTimeout,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::TimeoutDropped,
         })?;
         Ok(response)
     }
@@ -414,11 +404,9 @@ impl BcCamera {
         }
         query_sub.send(query_in)?;
 
-        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| {
-            match e {
-                std::sync::mpsc::RecvTimeoutError::Timeout => {Error::TimeoutTimeout}
-                std::sync::mpsc::RecvTimeoutError::Disconnected => {Error::TimeoutDropped}
-            }
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| match e {
+            std::sync::mpsc::RecvTimeoutError::Timeout => Error::TimeoutTimeout,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::TimeoutDropped,
         })?;
         Ok(response)
     }
@@ -445,11 +433,9 @@ impl BcCamera {
         }
         query_sub.send(query_in)?;
 
-        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| {
-            match e {
-                std::sync::mpsc::RecvTimeoutError::Timeout => {Error::TimeoutTimeout}
-                std::sync::mpsc::RecvTimeoutError::Disconnected => {Error::TimeoutDropped}
-            }
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| match e {
+            std::sync::mpsc::RecvTimeoutError::Timeout => Error::TimeoutTimeout,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::TimeoutDropped,
         })?;
         Ok(response)
     }
@@ -476,11 +462,9 @@ impl BcCamera {
         }
         query_sub.send(query_in)?;
 
-        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| {
-            match e {
-                std::sync::mpsc::RecvTimeoutError::Timeout => {Error::TimeoutTimeout}
-                std::sync::mpsc::RecvTimeoutError::Disconnected => {Error::TimeoutDropped}
-            }
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| match e {
+            std::sync::mpsc::RecvTimeoutError::Timeout => Error::TimeoutTimeout,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::TimeoutDropped,
         })?;
         Ok(response)
     }
@@ -507,11 +491,9 @@ impl BcCamera {
         }
         query_sub.send(query_in)?;
 
-        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| {
-            match e {
-                std::sync::mpsc::RecvTimeoutError::Timeout => {Error::TimeoutTimeout}
-                std::sync::mpsc::RecvTimeoutError::Disconnected => {Error::TimeoutDropped}
-            }
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| match e {
+            std::sync::mpsc::RecvTimeoutError::Timeout => Error::TimeoutTimeout,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::TimeoutDropped,
         })?;
         Ok(response)
     }
@@ -538,11 +520,9 @@ impl BcCamera {
         }
         query_sub.send(query_in)?;
 
-        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| {
-            match e {
-                std::sync::mpsc::RecvTimeoutError::Timeout => {Error::TimeoutTimeout}
-                std::sync::mpsc::RecvTimeoutError::Disconnected => {Error::TimeoutDropped}
-            }
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| match e {
+            std::sync::mpsc::RecvTimeoutError::Timeout => Error::TimeoutTimeout,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::TimeoutDropped,
         })?;
         Ok(response)
     }
@@ -569,11 +549,9 @@ impl BcCamera {
         }
         query_sub.send(query_in)?;
 
-        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| {
-            match e {
-                std::sync::mpsc::RecvTimeoutError::Timeout => {Error::TimeoutTimeout}
-                std::sync::mpsc::RecvTimeoutError::Disconnected => {Error::TimeoutDropped}
-            }
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| match e {
+            std::sync::mpsc::RecvTimeoutError::Timeout => Error::TimeoutTimeout,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::TimeoutDropped,
         })?;
         Ok(response)
     }
@@ -600,11 +578,9 @@ impl BcCamera {
         }
         query_sub.send(query_in)?;
 
-        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| {
-            match e {
-                std::sync::mpsc::RecvTimeoutError::Timeout => {Error::TimeoutTimeout}
-                std::sync::mpsc::RecvTimeoutError::Disconnected => {Error::TimeoutDropped}
-            }
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| match e {
+            std::sync::mpsc::RecvTimeoutError::Timeout => Error::TimeoutTimeout,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::TimeoutDropped,
         })?;
         Ok(response)
     }
@@ -631,11 +607,9 @@ impl BcCamera {
         }
         query_sub.send(query_in)?;
 
-        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| {
-            match e {
-                std::sync::mpsc::RecvTimeoutError::Timeout => {Error::TimeoutTimeout}
-                std::sync::mpsc::RecvTimeoutError::Disconnected => {Error::TimeoutDropped}
-            }
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| match e {
+            std::sync::mpsc::RecvTimeoutError::Timeout => Error::TimeoutTimeout,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::TimeoutDropped,
         })?;
         Ok(response)
     }
@@ -662,11 +636,9 @@ impl BcCamera {
         }
         query_sub.send(query_in)?;
 
-        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| {
-            match e {
-                std::sync::mpsc::RecvTimeoutError::Timeout => {Error::TimeoutTimeout}
-                std::sync::mpsc::RecvTimeoutError::Disconnected => {Error::TimeoutDropped}
-            }
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| match e {
+            std::sync::mpsc::RecvTimeoutError::Timeout => Error::TimeoutTimeout,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::TimeoutDropped,
         })?;
         Ok(response)
     }
@@ -693,11 +665,9 @@ impl BcCamera {
         }
         query_sub.send(query_in)?;
 
-        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| {
-            match e {
-                std::sync::mpsc::RecvTimeoutError::Timeout => {Error::TimeoutTimeout}
-                std::sync::mpsc::RecvTimeoutError::Disconnected => {Error::TimeoutDropped}
-            }
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| match e {
+            std::sync::mpsc::RecvTimeoutError::Timeout => Error::TimeoutTimeout,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::TimeoutDropped,
         })?;
         Ok(response)
     }
@@ -731,11 +701,9 @@ impl BcCamera {
         }
         query_sub.send(query_in)?;
 
-        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| {
-            match e {
-                std::sync::mpsc::RecvTimeoutError::Timeout => {Error::TimeoutTimeout}
-                std::sync::mpsc::RecvTimeoutError::Disconnected => {Error::TimeoutDropped}
-            }
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| match e {
+            std::sync::mpsc::RecvTimeoutError::Timeout => Error::TimeoutTimeout,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::TimeoutDropped,
         })?;
         Ok(response)
     }
@@ -769,11 +737,9 @@ impl BcCamera {
         }
         query_sub.send(query_in)?;
 
-        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| {
-            match e {
-                std::sync::mpsc::RecvTimeoutError::Timeout => {Error::TimeoutTimeout}
-                std::sync::mpsc::RecvTimeoutError::Disconnected => {Error::TimeoutDropped}
-            }
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| match e {
+            std::sync::mpsc::RecvTimeoutError::Timeout => Error::TimeoutTimeout,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::TimeoutDropped,
         })?;
         Ok(response)
     }
@@ -825,11 +791,7 @@ impl BcCamera {
         }
     }
 
-    pub fn enable_led(
-        &self,
-        channel_id: u32,
-        enable: bool,
-    ) -> Result<Bc> {
+    pub fn enable_led(&self, channel_id: u32, enable: bool) -> Result<Bc> {
         let connection = self
             .connection
             .as_ref()
@@ -852,8 +814,8 @@ impl BcCamera {
             },
         );
         if let BcBody::ModernMsg(mmsg) = &mut query_in.body {
-            mmsg.payload = Some(BcPayloads::BcXml(BcXml{
-                led_state: Some(LedState{
+            mmsg.payload = Some(BcPayloads::BcXml(BcXml {
+                led_state: Some(LedState {
                     channel_id,
                     state: "close".to_string(), // Turn off auto
                     light_state: if enable {
@@ -868,11 +830,9 @@ impl BcCamera {
         }
         query_sub.send(query_in)?;
 
-        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| {
-            match e {
-                std::sync::mpsc::RecvTimeoutError::Timeout => {Error::TimeoutTimeout}
-                std::sync::mpsc::RecvTimeoutError::Disconnected => {Error::TimeoutDropped}
-            }
+        let response = query_sub.rx.recv_timeout(RX_TIMEOUT).map_err(|e| match e {
+            std::sync::mpsc::RecvTimeoutError::Timeout => Error::TimeoutTimeout,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::TimeoutDropped,
         })?;
         Ok(response)
     }

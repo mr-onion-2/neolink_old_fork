@@ -1,5 +1,5 @@
 use crate::mqtt::{MqttConfig, MQTT};
-use crossbeam_channel::{unbounded};
+use crossbeam_channel::unbounded;
 use env_logger::Env;
 use err_derive::Error;
 use gio::TlsAuthenticationMode;
@@ -9,7 +9,7 @@ use neolink::gst::{MaybeAppSrc, RtspServer, StreamFormat};
 use neolink::Never;
 use std::collections::HashSet;
 use std::fs;
-use std::sync::{Arc, atomic::AtomicBool, atomic::Ordering};
+use std::sync::{atomic::AtomicBool, atomic::Ordering, Arc};
 use std::time::Duration;
 use structopt::StructOpt;
 use validator::Validate;
@@ -94,14 +94,7 @@ fn main() -> Result<(), Error> {
                     .unwrap();
                 let main_camera = arc_cam.clone();
 
-                s.spawn(move |_| {
-                    camera_loop(
-                        &*main_camera,
-                        "mainStream",
-                        &mut output,
-                        true,
-                    )
-                });
+                s.spawn(move |_| camera_loop(&*main_camera, "mainStream", &mut output, true));
             }
             if ["both", "subStream"].iter().any(|&e| e == arc_cam.stream) {
                 let paths = &[&*format!("/{}/subStream", arc_cam.name)];
@@ -110,14 +103,7 @@ fn main() -> Result<(), Error> {
                     .unwrap();
                 let sub_camera = arc_cam.clone();
                 let manage = arc_cam.stream == "subStream";
-                s.spawn(move |_| {
-                    camera_loop(
-                        &*sub_camera,
-                        "subStream",
-                        &mut output,
-                        manage,
-                    )
-                });
+                s.spawn(move |_| camera_loop(&*sub_camera, "subStream", &mut output, manage));
             }
         }
 
@@ -157,8 +143,7 @@ fn camera_loop(
     let arc_mqtt;
     if manage {
         arc_mqtt = set_up_mqtt(&camera_config.mqtt, &camera_config.name);
-    }
-    else {
+    } else {
         arc_mqtt = None;
     }
 
@@ -169,7 +154,10 @@ fn camera_loop(
 
         if let Some(mqtt) = arc_mqtt.as_ref() {
             if mqtt.send_message("status", "disconnected", true).is_err() {
-                error!("Failed to post dissconnect over MQTT for {}", &camera_config.name);
+                error!(
+                    "Failed to post dissconnect over MQTT for {}",
+                    &camera_config.name
+                );
             }
         }
 

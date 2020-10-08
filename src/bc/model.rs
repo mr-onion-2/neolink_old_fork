@@ -1,4 +1,4 @@
-pub use super::xml::{BcXml, Extension, BcXmls, BcPayloads};
+pub use super::xml::{BcPayloads, BcXml, BcXmls, Extension};
 use std::collections::HashSet;
 
 pub(super) const MAGIC_HEADER: u32 = 0xabcdef0;

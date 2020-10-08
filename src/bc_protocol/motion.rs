@@ -50,12 +50,11 @@ impl<'a> MotionDataSubscriber<'a> {
                     }
                 }
                 Ok(MotionStatus::NoChange) // Someone else (another camera channel) changed but we didn't
-            },
+            }
             Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
                 Err(Error::TimeoutDropped) // When dropped we stop
-            },
-            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => Ok(MotionStatus::NoChange) // On timeout we say no change
+            }
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => Ok(MotionStatus::NoChange), // On timeout we say no change
         }
-
     }
 }
