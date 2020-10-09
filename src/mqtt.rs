@@ -15,6 +15,7 @@ pub struct MQTT {
     name: String,
     incoming: (Sender<Publish>, Receiver<Publish>),
     msg_channel: (Sender<MqttReply>, Receiver<MqttReply>),
+    drop_message: Mutex<Option<MqttReply>>,
 }
 
 pub struct MqttReply {
@@ -81,12 +82,15 @@ impl MQTT {
         }
 
         mqttoptions.set_keep_alive(5);
+
+        // On unclean disconnect send this
         mqttoptions.set_last_will(LastWill::new(
             format!("neolink/{}/status", name),
             "offline",
             QoS::AtLeastOnce,
             true,
         ));
+
         let (client, connection) = Client::new(mqttoptions, 10);
 
         let me = Self {
@@ -95,6 +99,11 @@ impl MQTT {
             name: name.to_string(),
             incoming,
             msg_channel,
+            // Send the drop message on clean disconnect
+            drop_message: Mutex::new(Some(MqttReply{
+                topic: "status".to_string(),
+                message: "offline".to_string(),
+            })),
         };
 
         let arc_me = Arc::new(me);
@@ -115,6 +124,14 @@ impl MQTT {
         });
 
         arc_me
+    }
+
+    #[allow(unused)]
+    pub fn set_drop_message(&mut self, topic: &str, message: &str) {
+        self.drop_message.lock().unwrap().replace(MqttReply{
+            topic: topic.to_string(),
+            message: message.to_string(),
+        });
     }
 
     fn subscribe(&self) -> Result<(), ClientError> {
@@ -180,7 +197,6 @@ impl MQTT {
         info!("Starting MQTT Client for {}", self.name);
         loop {
             for (_i, notification) in connection.iter().enumerate() {
-                trace!("MQTT Notification = {:?}", notification);
                 if let Ok(notification) = notification {
                     match notification {
                         Event::Incoming(Incoming::ConnAck(connected)) => {
@@ -198,6 +214,17 @@ impl MQTT {
                         _ => {}
                     }
                 }
+            }
+        }
+    }
+}
+
+impl Drop for MQTT {
+    fn drop(&mut self) {
+        let drop_message = self.drop_message.lock().unwrap();
+        if let Some(drop_message) = drop_message.as_ref() {
+            if self.send_message(&drop_message.topic, &drop_message.message, true).is_err() {
+                error!("Failed to send offline message to mqtt");
             }
         }
     }
