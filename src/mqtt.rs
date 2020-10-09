@@ -100,7 +100,7 @@ impl MQTT {
             incoming,
             msg_channel,
             // Send the drop message on clean disconnect
-            drop_message: Mutex::new(Some(MqttReply{
+            drop_message: Mutex::new(Some(MqttReply {
                 topic: "status".to_string(),
                 message: "offline".to_string(),
             })),
@@ -128,7 +128,7 @@ impl MQTT {
 
     #[allow(unused)]
     pub fn set_drop_message(&mut self, topic: &str, message: &str) {
-        self.drop_message.lock().unwrap().replace(MqttReply{
+        self.drop_message.lock().unwrap().replace(MqttReply {
             topic: topic.to_string(),
             message: message.to_string(),
         });
@@ -223,7 +223,10 @@ impl Drop for MQTT {
     fn drop(&mut self) {
         let drop_message = self.drop_message.lock().unwrap();
         if let Some(drop_message) = drop_message.as_ref() {
-            if self.send_message(&drop_message.topic, &drop_message.message, true).is_err() {
+            if self
+                .send_message(&drop_message.topic, &drop_message.message, true)
+                .is_err()
+            {
                 error!("Failed to send offline message to mqtt");
             }
         }
