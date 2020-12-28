@@ -35,3 +35,4 @@ jobs:
     - name: rustfmt
       run: |
         cargo +nightly fmt -- --check
+
