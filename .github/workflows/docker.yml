@@ -28,7 +28,7 @@ jobs:
         id: string_repo
         uses: ASzc/change-string-case-action@v1
         with:
-          string: ${{ github.repository }}
+          string: securitybyte/neolink
       - name: Set up QEMU
         if: ${{ steps.vars.outputs.HAS_SECRET_TOKEN }}
         uses: docker/setup-qemu-action@v1
