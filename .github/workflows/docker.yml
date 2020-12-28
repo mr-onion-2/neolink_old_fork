@@ -67,11 +67,11 @@ jobs:
         if: ${{ steps.vars.outputs.HAS_SECRET_TOKEN }}
         uses: docker/build-push-action@v2
         with:
-          platforms: linux/amd64,linux/arm/v7,linux/arm/v6
+          platforms: linux/arm/v8
           push: true
           file: Dockerfile
           tags: ${{ steps.tags.outputs.TAGS }}
-          build-args: VERSION=${{ steps.toml.outputs.version }}, REPO=${{ github.repository }}, OWNER=${{ github.repository_owner }}
+          build-args: VERSION=${{ steps.toml.outputs.version }}, REPO=securitybyte/neolink, OWNER=securitybyte
         env:
           DOCKER_BUILDKIT: 1
 
