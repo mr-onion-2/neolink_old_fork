@@ -23,7 +23,7 @@ jobs:
         id: string_user
         uses: ASzc/change-string-case-action@v1
         with:
-          string: ${{ github.repository_owner }}
+          string: "${{ secrets.DOCKER_USER }}"
       - name: Convert repo to lower case for docker
         id: string_repo
         uses: ASzc/change-string-case-action@v1
